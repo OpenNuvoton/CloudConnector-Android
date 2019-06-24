@@ -3,4 +3,9 @@
     <color name="colorPrimary">#008577</color>
     <color name="colorPrimaryDark">#00574B</color>
     <color name="colorAccent">#D81B60</color>
+
+    <color name="tabNormalColor">#C4C4C4</color>
+    <color name="textGray">#C4C4C4</color>
+    <color name="indicatorRed">#CC0000</color>
+    <color name="indicatorGreen">#00BB00</color>
 </resources>
