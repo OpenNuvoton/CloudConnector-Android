@@ -1,8 +1,9 @@
 package com.nuvoton.cloudconnector.model
 
 import android.content.Context
-import android.util.Log
-import io.reactivex.android.schedulers.AndroidSchedulers
+import com.nuvoton.cloudconnector.viewmodel.RepoOption
+import com.nuvoton.cloudconnector.viewmodel.RepoOption.*
+import com.nuvoton.cloudconnector.viewmodel.RepoStatus
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.schedulers.Schedulers
 import io.reactivex.subjects.PublishSubject
@@ -13,22 +14,70 @@ class Repository private constructor() {
         val shared : Repository by lazy { Holder.inst }
     }
 
-    private val compositeDisposable = CompositeDisposable()
+    private val switchCloudsDisposable = CompositeDisposable()
+    private val lifeCycleDisposable = CompositeDisposable()
 
-    var awsRepo : AWSRepo? = null
+    lateinit var awsRepo : AWSRepo
+    val aliyunRepo = AliyunRepo()
+    val pelionRepo = PelionRepo()
+    var context: Context? = null
     set(value) {
-        val dis = value!!.awsSubject.subscribeOn(Schedulers.io()).subscribe({
-            awsSubject.onNext(it)
-        }, {
-            Log.d(this.javaClass.simpleName, "Repository error")
-            it.printStackTrace()
-        })
-        compositeDisposable.add(dis)
+        awsRepo = AWSRepo(value!!)
+        bindStatusCallback(AWS, awsRepo)
         field = value
     }
-    var awsSubject : PublishSubject<String> = PublishSubject.create()
+
+    val dataUpdateSubject : PublishSubject<HashMap<String, Any?>> = PublishSubject.create()
+    val repoStatusSubject : PublishSubject<RepoStatus> = PublishSubject.create()
+
+    init {
+        bindStatusCallback(PELION, pelionRepo)
+        bindStatusCallback(ALIYUN, aliyunRepo)
+    }
+
+    fun switchRepo(option: RepoOption) {
+        val dis = when (option) {
+            AWS -> {
+                awsRepo.awsDataSubject.subscribeOn(Schedulers.io()).subscribe({
+                    dataUpdateSubject.onNext(it)
+                }, {
+                    it.printStackTrace()
+                })
+            }
+            PELION -> {
+                pelionRepo.pelionNotiSubject.subscribeOn(Schedulers.io()).subscribe({
+                    dataUpdateSubject.onNext(it)
+                }, {
+                    it.printStackTrace()
+                })
+            }
+            ALIYUN -> {
+                aliyunRepo.aliyunSubject.subscribeOn(Schedulers.io()).subscribe({
+                    dataUpdateSubject.onNext(it)
+                }, {
+                    it.printStackTrace()
+                })
+            }
+        }
+        switchCloudsDisposable.add(dis)
+    }
+
+    fun bindStatusCallback(option: RepoOption, repo: RepositryCommon) {
+        val dis = repo.isAlive.observable.subscribeOn(Schedulers.io()).subscribe { isAlive ->
+            repoStatusSubject.onNext(RepoStatus(option, isAlive))
+        }
+        lifeCycleDisposable.add(dis)
+    }
+
+    fun clearDisposable() {
+        switchCloudsDisposable.clear()
+    }
 
     fun destroy() {
-        compositeDisposable.clear()
+        switchCloudsDisposable.dispose()
+        lifeCycleDisposable.dispose()
+        awsRepo.destroy()
+        aliyunRepo.destroy()
+        pelionRepo.destroy()
     }
 }

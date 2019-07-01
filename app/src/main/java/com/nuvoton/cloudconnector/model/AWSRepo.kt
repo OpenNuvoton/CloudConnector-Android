@@ -5,20 +5,28 @@ import com.amazonaws.auth.CognitoCachingCredentialsProvider
 import com.amazonaws.regions.Regions
 import com.amazonaws.services.iotdata.AWSIotDataClient
 import com.amazonaws.services.iotdata.model.GetThingShadowRequest
+import com.google.gson.Gson
+import com.nuvoton.cloudconnector.debug
+import com.nuvoton.cloudconnector.fromJsonString
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.schedulers.Schedulers
 import io.reactivex.subjects.PublishSubject
 
-class AWSRepo(applicationContext: Context) {
+// icon credits: <div>Icons made by <a href="https://www.freepik.com/?__hstc=57440181.bc7bb437dc895a5e02ce4844a8fedf46.1561102499736.1561367496128.1562656684616.5&__hssc=57440181.7.1562656684616&__hsfp=2168691457" title="Freepik">Freepik</a> from <a href="https://www.flaticon.com/"                 title="Flaticon">www.flaticon.com</a> is licensed by <a href="http://creativecommons.org/licenses/by/3.0/"                 title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a></div>
+
+class AWSRepo(applicationContext: Context) : RepositryCommon() {
     private var mAWSIoTdataClient: AWSIotDataClient? = null
     private var mCognitoIdentityPoolId = "us-east-1:9e41d4ca-03a7-4af0-a6ec-0bc5b5814781"
     private var mCredentialProvider: CognitoCachingCredentialsProvider? = null
     private var mIoTEndpoint = "a1fljoeglhtf61-ats.iot.us-east-1.amazonaws.com"
     private var mIoTThingName = "NuAccelMeter"
     private var mRegion = Regions.US_EAST_1
-    private val compositeDisposable = CompositeDisposable()
-    val awsSubject : PublishSubject<String> = PublishSubject.create()
-    private val mIoTSubject : PublishSubject<String> = PublishSubject.create()
+    private val lifeCycleDisposable = CompositeDisposable()
+    val awsDataSubject : PublishSubject<HashMap<String, Any?>> = PublishSubject.create()
+    private val iotRequestSubject : PublishSubject<String> = PublishSubject.create()
+
+    private val gson = Gson()
+    private var test = 0
 
     init {
         // Initialize AWS Cognito Credential Provider
@@ -32,29 +40,30 @@ class AWSRepo(applicationContext: Context) {
         mAWSIoTdataClient = AWSIotDataClient(mCredentialProvider)
         mAWSIoTdataClient!!.endpoint = mIoTEndpoint
 
-
-        val dis = mIoTSubject.subscribeOn(Schedulers.io())
-            .subscribe({
-                val req = GetThingShadowRequest().withThingName(it)
-                print("req=$req")
-                val result = mAWSIoTdataClient?.getThingShadow(req)
-                print("result=$result")
+        val dis = iotRequestSubject.subscribeOn(Schedulers.io()).map { iotThingName ->
+            val req = GetThingShadowRequest().withThingName(iotThingName)
+            debug("req ${test++}=$req")
+            mAWSIoTdataClient?.getThingShadow(req)
+        }.subscribe({ result ->
                 if (result != null) {
+                    isAlive.value = true
                     val bytes = ByteArray(result.payload.remaining())
                     result.payload.get(bytes)
-                    awsSubject.onNext(String(bytes))
+                    val json = String(bytes)
+                    val map: HashMap<String, Any?> = gson.fromJsonString(json)
+                    awsDataSubject.onNext(map)
                 }
             }, {
                 it.printStackTrace()
             })
-        compositeDisposable.add(dis)
+        lifeCycleDisposable.add(dis)
     }
 
     fun getIoTLatestStatus() {
-        mIoTSubject.onNext(mIoTThingName)
+        iotRequestSubject.onNext(mIoTThingName)
     }
 
     fun destroy() {
-        compositeDisposable.clear()
+        lifeCycleDisposable.dispose()
     }
 }

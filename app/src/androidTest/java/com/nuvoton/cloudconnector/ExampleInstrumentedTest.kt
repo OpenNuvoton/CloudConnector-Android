@@ -3,17 +3,16 @@ package com.nuvoton.cloudconnector
 import android.content.Context
 import android.util.Log
 import androidx.test.InstrumentationRegistry
-import androidx.test.runner.AndroidJUnit4
 import com.nuvoton.cloudconnector.model.AWSRepo
+import com.nuvoton.cloudconnector.model.AliyunRepo
+import com.nuvoton.cloudconnector.model.PelionRepo
 import io.reactivex.schedulers.Schedulers
 
 import org.junit.Test
-import org.junit.runner.RunWith
 
 import org.junit.Assert.*
 import org.junit.Before
 import java.util.concurrent.CountDownLatch
-import kotlin.math.sign
 
 /**
  * Instrumented test, which will execute on an Android device.
@@ -33,7 +32,7 @@ class ExampleInstrumentedTest
     fun testAWSRepo() {
         val signal = CountDownLatch(1)
         val aws = AWSRepo(fakeContext)
-        aws.awsSubject.subscribeOn(Schedulers.io()).subscribe({
+        aws.awsDataSubject.subscribeOn(Schedulers.io()).subscribe({
             Log.d(this.javaClass.simpleName, "message = $it")
             print("message = $it")
             signal.countDown()
@@ -42,6 +41,57 @@ class ExampleInstrumentedTest
             signal.countDown()
         })
         aws.getIoTLatestStatus()
+        signal.await()
+    }
+
+    @Test
+    fun testAliyunRepo() {
+        val signal = CountDownLatch(1)
+        val aliyun = AliyunRepo()
+        aliyun.aliyunSubject.subscribeOn(Schedulers.io()).subscribe({
+            Log.d(this.javaClass.simpleName, "message = $it")
+            aliyun.destroy()
+            signal.countDown()
+        }, {
+            it.printStackTrace()
+            aliyun.destroy()
+            signal.countDown()
+        })
+        signal.await()
+    }
+
+    @Test
+    fun testPelionGet() {
+        val signal = CountDownLatch(1)
+        val pelionRepo = PelionRepo()
+        pelionRepo.pelionRequestSubject.subscribe({
+            Log.d(this.javaClass.simpleName, "message = $it")
+            signal.countDown()
+        }, {
+            it.printStackTrace()
+            signal.countDown()
+        })
+        pelionRepo.get("v3/devices/")
+        signal.await()
+    }
+
+    @Test
+    fun testPelionWebSocket() {
+        val signal = CountDownLatch(1)
+        val pelionRepo = PelionRepo()
+
+        pelionRepo.pelionRequestSubject.subscribe {
+            Log.d(this.javaClass.simpleName, "request response = $it")
+        }
+
+        pelionRepo.pelionNotiSubject.subscribe({
+            Log.d(this.javaClass.simpleName, "noti response = $it")
+            signal.countDown()
+        }, {
+            it.printStackTrace()
+            signal.countDown()
+        })
+        pelionRepo.put("v2/notification/websocket", "{}")
         signal.await()
     }
 
