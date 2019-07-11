@@ -9,7 +9,7 @@ import io.reactivex.subjects.PublishSubject
 import java.util.concurrent.TimeUnit
 
 class MainViewModel(context: Context) {
-    val mvDataUpdateSubject : PublishSubject<HashMap<String, Any?>> = PublishSubject.create()
+    val mvDataUpdateSubject : PublishSubject<Map<String, Any?>> = PublishSubject.create()
     val mvRepoStatusSubject : PublishSubject<RepoStatus> = PublishSubject.create()
     val repo = Repository.shared
 

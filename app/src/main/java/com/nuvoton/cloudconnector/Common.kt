@@ -3,6 +3,7 @@ package com.nuvoton.cloudconnector
 import android.app.Activity
 import android.util.Log
 import android.view.ViewManager
+import android.widget.Button
 import com.github.mikephil.charting.charts.LineChart
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
@@ -14,3 +15,5 @@ inline fun <reified T> Gson.fromJsonString(json: String) = this.fromJson<T>(json
 
 inline fun Activity.debug(message: String) = Log.d(this.javaClass.simpleName, message)
 inline fun AWSRepo.debug(message: String) = Log.d(this.javaClass.simpleName, message)
+
+

@@ -27,7 +27,7 @@ class Repository private constructor() {
         field = value
     }
 
-    val dataUpdateSubject : PublishSubject<HashMap<String, Any?>> = PublishSubject.create()
+    val dataUpdateSubject : PublishSubject<Map<String, Any?>> = PublishSubject.create()
     val repoStatusSubject : PublishSubject<RepoStatus> = PublishSubject.create()
 
     init {
@@ -62,8 +62,8 @@ class Repository private constructor() {
         switchCloudsDisposable.add(dis)
     }
 
-    fun bindStatusCallback(option: RepoOption, repo: RepositryCommon) {
-        val dis = repo.isAlive.observable.subscribeOn(Schedulers.io()).subscribe { isAlive ->
+    fun bindStatusCallback(option: RepoOption, repo: RepositoryCommon) {
+        val dis = repo.getIsAlive().observable.subscribeOn(Schedulers.io()).subscribe { isAlive ->
             repoStatusSubject.onNext(RepoStatus(option, isAlive))
         }
         lifeCycleDisposable.add(dis)

@@ -11,10 +11,12 @@ import android.view.WindowManager
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
+import com.github.mikephil.charting.charts.LineChart
 import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData
 import com.github.mikephil.charting.data.LineDataSet
 import com.github.mikephil.charting.interfaces.datasets.ILineDataSet
+import com.jakewharton.rxbinding3.view.clicks
 import com.nuvoton.cloudconnector.R
 import com.nuvoton.cloudconnector.debug
 import com.nuvoton.cloudconnector.lineChart
@@ -30,12 +32,18 @@ import org.jetbrains.anko.constraint.layout.constraintLayout
 import org.jetbrains.anko.sdk27.coroutines.onTouch
 import java.nio.Buffer
 
+import com.jakewharton.rxbinding3.view.touches
+import com.uber.autodispose.autoDisposable
+import java.util.concurrent.TimeUnit
+
 class MainActivity : AppCompatActivity() {
     lateinit var mainViewModel: MainViewModel
     private var awsButton: Button? = null
     private var pelionButton: Button? = null
     private var aliyunButton: Button? = null
     private var test = 0
+    private var lineChart : LineChart? = null
+    private var lineDataSet: LineDataSet? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -55,13 +63,34 @@ class MainActivity : AppCompatActivity() {
                 }
             }
 
-        mainViewModel.mvDataUpdateSubject.subscribeOn(Schedulers.io()).
-                `as`(AutoDispose.autoDisposable(AndroidLifecycleScopeProvider.from(this)))
+        mainViewModel.mvDataUpdateSubject.subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .`as`(AutoDispose.autoDisposable(AndroidLifecycleScopeProvider.from(this)))
             .subscribe({
-                debug("mvDataUpdateSubject message received, ${test++} = $it")
+                // 暫時只取第一個VALUE用來更新圖表，並非最終版
+                val value = if (it.isNotEmpty()) {
+                    val list = ArrayList(it.values)
+                    list[0].toString()
+                } else
+                    "0"
+                updateChart(value.toFloat())
+//                debug("mvDataUpdateSubject message received, ${test++} = $it")
             }, {
                 it.printStackTrace()
             })
+    }
+
+    fun updateChart(value: Float) {
+        if (lineChart != null) {
+            val lineData = lineChart!!.data
+            val dataset = lineData.dataSets[0]
+            val x = dataset.entryCount
+            dataset.addEntry(Entry(x.toFloat(), value))
+            dataset.removeFirst()
+            lineData.notifyDataChanged()
+            lineChart!!.notifyDataSetChanged()
+            lineChart!!.invalidate()
+        }
     }
 
     override fun onDestroy() {
@@ -93,7 +122,7 @@ class MainActivity : AppCompatActivity() {
                     setBackgroundResource(R.drawable.button_gray_up)
                     textColor = Color.WHITE
                     textSize = 20f
-                    onTouch { v, event ->
+                    touches { event ->
                         when (event.action) {
                             MotionEvent.ACTION_DOWN -> {
                                 setBackgroundResource(R.drawable.button_down)
@@ -103,7 +132,10 @@ class MainActivity : AppCompatActivity() {
                                 setBackgroundResource(R.drawable.button_up)
                             }
                         }
-                    }
+                        false
+                    }.debounce(2, TimeUnit.SECONDS)
+                        .`as`(AutoDispose.autoDisposable(AndroidLifecycleScopeProvider.from(this@MainActivity)))
+                        .subscribe()
                 }.lparams(width = 0, height = matchParent) {
                     weight = 1f
                     margin = 8
@@ -168,16 +200,16 @@ class MainActivity : AppCompatActivity() {
                 endToEnd = rootView.id
             }
 
-            lineChart {
+            lineChart = lineChart {
                 id = View.generateViewId()
                 backgroundColor = Color.TRANSPARENT
                 val arraylist = arrayListOf<Entry>()
                 for (i in 0 until 10) {
-                    val ran = Math.random().toInt() % 30
+                    val ran = Math.random()*100.0.toInt() % 30
                     arraylist.add(Entry(i.toFloat(), ran.toFloat()))
                 }
-                val tempDataSet = LineDataSet(arraylist, "TEST Dataset")
-                val dataset = arrayListOf<ILineDataSet>(tempDataSet)
+                lineDataSet = LineDataSet(arraylist, "TEST Dataset")
+                val dataset = arrayListOf<ILineDataSet>(lineDataSet!!)
                 val tempdata = LineData(dataset)
                 data = tempdata
             }.lparams(width = matchParent, height = 0) {

@@ -10,7 +10,7 @@ import io.reactivex.subjects.PublishSubject
 
 // websocket reference: https://www.pelion.com/docs/device-management/current/integrate-web-app/event-notification.html#websocket-interface
 
-class PelionRepo : RepositryCommon() {
+class PelionRepo : RepositoryCommon() {
     private val apiKey = "ak_1MDE1ZTViZDZjNzBjMDI0MjBhMDExNDA1MDAwMDAwMDA015f5da4433c02420a011b0800000000OaUDAhYmVjiD1WjBj6vG0kIamO6FvC6L"
     private val requstHostname = "api.us-east-1.mbedcloud.com"
     private val requestUrl = "https://$requstHostname"
