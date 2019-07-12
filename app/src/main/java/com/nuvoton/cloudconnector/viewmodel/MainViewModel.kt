@@ -1,58 +1,133 @@
 package com.nuvoton.cloudconnector.viewmodel
 
 import android.content.Context
-import com.nuvoton.cloudconnector.model.Repository
-import io.reactivex.Observable
+import android.util.Base64
+import android.util.Log
+import com.nuvoton.cloudconnector.RxWebSocketInfo
+import com.nuvoton.cloudconnector.RxWebSocketMessage
+import com.nuvoton.cloudconnector.debug
+import com.nuvoton.cloudconnector.fromJsonString
+import com.nuvoton.cloudconnector.model.AWSRepo
+import com.nuvoton.cloudconnector.model.AliyunRepo
+import com.nuvoton.cloudconnector.model.PelionRepo
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.schedulers.Schedulers
 import io.reactivex.subjects.PublishSubject
-import java.util.concurrent.TimeUnit
+import java.nio.charset.Charset
 
 class MainViewModel(context: Context) {
-    val mvDataUpdateSubject : PublishSubject<Map<String, Any?>> = PublishSubject.create()
-    val mvRepoStatusSubject : PublishSubject<RepoStatus> = PublishSubject.create()
-    val repo = Repository.shared
+    val mvAWSSubject : PublishSubject<Map<String, Any?>> = PublishSubject.create()
+    val mvAliyunSubject : PublishSubject<Map<String, Any?>> = PublishSubject.create()
+    val mvPelionSubject : PublishSubject<Map<String, Any?>> = PublishSubject.create()
+
+    val mvAWSStatusSubject : PublishSubject<Boolean> = PublishSubject.create()
+    val mvAliyunStatusSubject : PublishSubject<Boolean> = PublishSubject.create()
+    val mvPelionStatusSubject : PublishSubject<Boolean> = PublishSubject.create()
+
+    val awsRepo = AWSRepo(context)
+    val aliyunRepo = AliyunRepo()
+    val pelionRepo = PelionRepo()
 
     private val lifeCycleDisposables = CompositeDisposable()
-    private val switchDisposables = CompositeDisposable()
 
-    init {
-        repo.context = context.applicationContext
-        val dis = repo.repoStatusSubject.subscribeOn(Schedulers.io()).subscribe {
-            mvRepoStatusSubject.onNext(it)
-        }
-        lifeCycleDisposables.add(dis)
+    private fun bindStatusSubjects() {
+        val aws = awsRepo.getIsAlive().observable
+            .subscribeOn(Schedulers.io())
+            .subscribe({
+                mvAWSStatusSubject.onNext(it)
+            }, {
+                it.printStackTrace()
+            })
+        lifeCycleDisposables.add(aws)
 
-        val periodRequestAWSData = Observable.interval(5, TimeUnit.SECONDS, Schedulers.io()).subscribe({
-            repo.awsRepo.getIoTLatestStatus()
-        }, {
-            it.printStackTrace()
-        })
-        lifeCycleDisposables.add(periodRequestAWSData)
+        val aliyun = aliyunRepo.getIsAlive().observable
+            .subscribeOn(Schedulers.io())
+            .subscribe({
+                mvAliyunStatusSubject.onNext(it)
+            }, {
+                it.printStackTrace()
+            })
+        lifeCycleDisposables.add(aliyun)
+
+        val pelion = pelionRepo.getIsAlive().observable
+            .subscribeOn(Schedulers.io())
+            .subscribe({
+                mvPelionStatusSubject.onNext(it)
+            }, {
+                it.printStackTrace()
+            })
+        lifeCycleDisposables.add(pelion)
     }
 
-    fun setupCloud(option: RepoOption) {
-        clearSwitchDisposables()
-        repo.clearDisposable()
-        repo.switchRepo(option)
-        val dis = repo.dataUpdateSubject.subscribe({
-            mvDataUpdateSubject.onNext(it)
-        }, {
-            mvDataUpdateSubject.onError(it)
-        })
+    private fun bindDataSubjects() {
+        val aws = awsRepo.awsDataSubject
+            .subscribeOn(Schedulers.io())
+            .subscribe({
+                mvAWSSubject.onNext(it)
+            }, {
+                it.printStackTrace()
+            })
+        lifeCycleDisposables.add(aws)
 
-        switchDisposables.add(dis)
+        val aliyun = aliyunRepo.aliyunDataSubject
+            .subscribeOn(Schedulers.io())
+            .subscribe({
+                mvAliyunSubject.onNext(it)
+            }, {
+                it.printStackTrace()
+            })
+        lifeCycleDisposables.add(aliyun)
+
+        val pelion = pelionRepo.pelionDataSubject
+            .subscribeOn(Schedulers.io())
+            .subscribe({
+                //                debug("pelion data=$it")
+                if (it is RxWebSocketMessage) {
+                    val json : String =
+                        if (it.text != null)
+                            it.text!!
+                        else
+                            it.bytes!!.string(Charset.defaultCharset())
+                    val notiMap : HashMap<String, Any?> = pelionRepo.gson.fromJsonString(json)
+                    val notifications = notiMap["notifications"]
+                    val payload = if (notifications is List<*> && notifications.size > 0) {
+                        val noti = notifications[0] as Map<String, Any?>
+                        noti["payload"]
+                    }else
+                        null
+                    if (payload != null) {
+                        val value = Base64.decode(payload as String, Base64.NO_WRAP)
+                        val string = String(value)
+                        val map = hashMapOf<String, Any?>("temperature" to string.toFloat())
+                        map["timestamp"] = pelionRepo.getTimeSecond()
+                        mvPelionSubject.onNext(map)
+                    }
+                }
+            }, {
+                it.printStackTrace()
+            })
+        lifeCycleDisposables.add(pelion)
     }
 
-    fun clearSwitchDisposables() {
-        switchDisposables.clear()
+    fun start() {
+        bindDataSubjects()
+        bindStatusSubjects()
+        awsRepo.start()
+        aliyunRepo.start()
+        pelionRepo.start()
     }
 
+    fun pause() {
+        awsRepo.pause()
+        aliyunRepo.pause()
+        pelionRepo.pause()
+    }
 
     fun destroy() {
-        switchDisposables.dispose()
         lifeCycleDisposables.dispose()
-        repo.destroy()
+        awsRepo.destroy()
+        aliyunRepo.destroy()
+        pelionRepo.destroy()
     }
 }
 

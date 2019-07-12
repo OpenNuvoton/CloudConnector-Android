@@ -38,7 +38,7 @@ abstract class RxCountDown {
                 })
     }
 
-    fun cancel() {
+    fun stop() {
         disposable?.dispose()
     }
 }

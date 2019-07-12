@@ -1,14 +1,18 @@
 package com.nuvoton.cloudconnector.model
 
+import com.nuvoton.cloudconnector.*
 import io.reactivex.subjects.PublishSubject
 import okhttp3.*
 import okio.ByteString
 import java.lang.Exception
+import java.util.concurrent.TimeUnit
 
 class RxWebSocket(websocketUrl: String, apiKey: String) {
-    private val client = OkHttpClient()
+    private val client = OkHttpClient.Builder()
+        .readTimeout(0, TimeUnit.MILLISECONDS)
+        .build()
     private val request = Request.Builder()
-        .addHeader("Authorization", "Bearer $apiKey")
+        .addHeader("authorization", "Bearer $apiKey")
         .url(websocketUrl)
         .build()
     private var webSocket: WebSocket? = null
@@ -19,30 +23,45 @@ class RxWebSocket(websocketUrl: String, apiKey: String) {
         client.newWebSocket(request, object : WebSocketListener() {
             override fun onOpen(webSocket: WebSocket, response: Response) {
                 this@RxWebSocket.webSocket = webSocket
-                notificationChannel.onNext(RxWebSocketInfo(status = RxWebStatus.Open, response = response))
+                val open = RxWebSocketOpen()
+                open.response = response
+                notificationChannel.onNext(open)
             }
 
             override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
                 this@RxWebSocket.webSocket?.cancel()
                 this@RxWebSocket.webSocket = null
-                notificationChannel.onError(t)
+                val fail = RxWebSocketFailure()
+                fail.throwable = t
+                fail.response = response
+                notificationChannel.onNext(fail)
             }
 
             override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
-                notificationChannel.onNext(RxWebSocketInfo(status = RxWebStatus.Closing, code = code, reason = reason))
+                val closing = RxWebSocketClosing()
+                closing.code = code
+                closing.reason = reason
+                notificationChannel.onNext(closing)
             }
 
             override fun onMessage(webSocket: WebSocket, text: String) {
-                notificationChannel.onNext(RxWebSocketInfo(status = RxWebStatus.Message, text = text))
+                val message = RxWebSocketMessage()
+                message.text = text
+                notificationChannel.onNext(message)
             }
 
             override fun onMessage(webSocket: WebSocket, bytes: ByteString) {
-                notificationChannel.onNext(RxWebSocketInfo(status = RxWebStatus.Message, byteString = bytes))
+                val message = RxWebSocketMessage()
+                message.bytes = bytes
+                notificationChannel.onNext(message)
             }
 
             override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
                 this@RxWebSocket.webSocket = null
-                notificationChannel.onNext(RxWebSocketInfo(status = RxWebStatus.Closed, code = code, reason = reason))
+                val closed = RxWebSocketClosed()
+                closed.code = code
+                closed.reason = reason
+                notificationChannel.onNext(closed)
             }
         })
     }
@@ -65,19 +84,3 @@ class RxWebSocket(websocketUrl: String, apiKey: String) {
         webSocket = null
     }
 }
-
-enum class RxWebStatus {
-    Open,
-    Failure,
-    Closing,
-    Message,
-    Closed
-}
-
-open class RxWebSocketInfo(val status: RxWebStatus,
-                      var code: Int? = null,
-                      var reason: String? = null,
-                      var response: Response? = null,
-                      var text: String? = null,
-                      var byteString: ByteString? = null,
-                      var throwable: Throwable? = null)

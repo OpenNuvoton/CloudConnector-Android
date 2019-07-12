@@ -2,7 +2,6 @@ package com.nuvoton.cloudconnector.model
 
 import com.example.aiotcore.AiotMqttClient
 import com.example.aiotcore.AiotMqttException
-import com.google.gson.Gson
 import com.nuvoton.cloudconnector.fromJsonString
 import io.reactivex.subjects.PublishSubject
 
@@ -18,11 +17,11 @@ class AliyunRepo : RepositoryCommon() {
     private val hostname = "$productKey.iot-as-mqtt.cn-shanghai.aliyuncs.com"
     private val port = 1883
     private val qos = 0
-    private val gson = Gson()
 
-    val aliyunSubject: PublishSubject<HashMap<String, Any?>> = PublishSubject.create()
+    val aliyunDataSubject: PublishSubject<HashMap<String, Any?>> = PublishSubject.create()
 
-    init {
+    // Implement abstract functions
+    override fun start() {
         mqttClient.setHostName(hostname)
         mqttClient.setPort(port)
         mqttClient.setProductKey(productKey)
@@ -37,14 +36,21 @@ class AliyunRepo : RepositoryCommon() {
                 // change to hashmap in order to map all data sources
 //                val aliyunDataClass = gson.fromJson(payloadString, AliyunDataClass::class.java)
                 notifyRepoIsAlive()
-                aliyunSubject.onNext(gson.fromJsonString(payloadString))
+                val map : HashMap<String, Any?> = gson.fromJsonString(payloadString)
+                map["timestamp"] = getTimeSecond()
+                aliyunDataSubject.onNext(map)
             }
         } catch (e: AiotMqttException) {
             e.printStackTrace()
         }
     }
 
-    fun destroy() {
+    override fun pause() {
+        stopTimer()
         mqttClient.disconnect()
+    }
+
+    override fun destroy() {
+        mqttClient.finalize()
     }
 }

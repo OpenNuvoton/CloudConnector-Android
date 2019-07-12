@@ -11,36 +11,97 @@ import okhttp3.*
 class RxRestApi(val hostUrl: String, val apiKey: String) {
     private val client = OkHttpClient()
     private val gson = Gson()
-    val restSubject: PublishSubject<HashMap<String, Any?>> = PublishSubject.create()
+    val restSubject: PublishSubject<Response> = PublishSubject.create()
 
     private val compositeDisposable = CompositeDisposable()
 
-    fun get(subUrl: String) {
-        restAction(RESTAction.GET, subUrl)
+    fun syncGet(subUrl: String) : HashMap<String, Any?> {
+        return syncRestAction(RESTAction.GET, subUrl)
     }
 
-    fun put(subUrl: String, json: String) {
-        restAction(RESTAction.PUT, subUrl, json)
+    fun syncPut(subUrl: String, json: String?) : HashMap<String, Any?> {
+        return syncRestAction(RESTAction.PUT, subUrl, json)
     }
 
-    fun put(subUrl: String, content: HashMap<String, Any?>) {
-        restAction(RESTAction.PUT, subUrl, content)
+    fun syncPut(subUrl: String, content: HashMap<String, Any?>?) : HashMap<String, Any?> {
+        return syncRestAction(RESTAction.PUT, subUrl, content)
     }
 
-    fun post(subUrl: String, json: String) {
-        restAction(RESTAction.POST, subUrl, json)
+    fun syncPost(subUrl: String, json: String) : HashMap<String, Any?> {
+        return syncRestAction(RESTAction.POST, subUrl, json)
     }
 
-    fun post(subUrl: String, content: HashMap<String, Any?>) {
-        restAction(RESTAction.POST, subUrl, content)
+    fun syncPost(subUrl: String, content: HashMap<String, Any?>) : HashMap<String, Any?> {
+        return syncRestAction(RESTAction.POST, subUrl, content)
     }
 
-    private fun restAction(action: RESTAction, subUrl: String, json: String) {
-        val map : HashMap<String, Any?> = gson.fromJsonString(json)
-        restAction(action, subUrl, map)
+    private fun syncRestAction(action: RESTAction, subUrl: String, json: String?) : HashMap<String, Any?> {
+        val map : HashMap<String, Any?> = gson.fromJsonString(json ?: "{}")
+        return syncRestAction(action, subUrl, map)
     }
 
-    private fun restAction(action: RESTAction, subUrl: String, content: HashMap<String, Any?>? = null) {
+
+    private fun syncRestAction(action: RESTAction, subUrl: String, content: HashMap<String, Any?>? = null) : HashMap<String, Any?> {
+        val url = "$hostUrl/$subUrl"
+        val builder = FormBody.Builder()
+        content?.forEach { entry ->
+            builder.add(entry.key, entry.value.toString())
+        }
+        val request = when (action) {
+            RESTAction.GET -> {
+                Request.Builder()
+                    .addHeader("authorization", "Bearer $apiKey")
+                    .url(url)
+                    .get()
+                    .build()
+            }
+            RESTAction.PUT -> {
+                Request.Builder()
+                    .addHeader("authorization", "Bearer $apiKey")
+                    .url(url)
+                    .put(builder.build())
+                    .build()}
+            RESTAction.POST -> {
+                Request.Builder()
+                    .addHeader("authorization", "Bearer $apiKey")
+                    .url(url)
+                    .post(builder.build())
+                    .build()
+            }
+        }
+        val response = client.newCall(request).execute()
+        return hashMapOf(
+            "code" to response.code(),
+            "message" to response.message(),
+            "body" to response.body())
+    }
+
+    fun asyncGet(subUrl: String) {
+        asyncRestAction(RESTAction.GET, subUrl)
+    }
+
+    fun asyncPut(subUrl: String, json: String?) {
+        asyncRestAction(RESTAction.PUT, subUrl, json)
+    }
+
+    fun asyncPut(subUrl: String, content: HashMap<String, Any?>?) {
+        asyncRestAction(RESTAction.PUT, subUrl, content)
+    }
+
+    fun asyncPost(subUrl: String, json: String) {
+        asyncRestAction(RESTAction.POST, subUrl, json)
+    }
+
+    fun asyncPost(subUrl: String, content: HashMap<String, Any?>) {
+        asyncRestAction(RESTAction.POST, subUrl, content)
+    }
+
+    private fun asyncRestAction(action: RESTAction, subUrl: String, json: String?) {
+        val map : HashMap<String, Any?> = gson.fromJsonString(json ?: "{}")
+        asyncRestAction(action, subUrl, map)
+    }
+
+    private fun asyncRestAction(action: RESTAction, subUrl: String, content: HashMap<String, Any?>? = null) {
         val dis = Observable.just("$hostUrl/$subUrl").subscribeOn(Schedulers.io())
             .map {
                 val builder = FormBody.Builder()
@@ -71,8 +132,7 @@ class RxRestApi(val hostUrl: String, val apiKey: String) {
                 }
                 client.newCall(request).execute()
             }.subscribe({
-                val bodyMap : HashMap<String, Any?> = gson.fromJsonString(it.body()!!.string())
-                restSubject.onNext(bodyMap)
+                restSubject.onNext(it)
             }, {
                 restSubject.onError(it)
             })

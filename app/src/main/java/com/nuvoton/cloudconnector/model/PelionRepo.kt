@@ -1,12 +1,11 @@
 package com.nuvoton.cloudconnector.model
 
-import com.google.gson.Gson
-import com.nuvoton.cloudconnector.RxVar
-import com.nuvoton.cloudconnector.fromJsonString
-import com.nuvoton.cloudconnector.model.RxWebStatus.*
-import io.reactivex.disposables.CompositeDisposable
+import android.util.Log
+import com.nuvoton.cloudconnector.*
 import io.reactivex.schedulers.Schedulers
 import io.reactivex.subjects.PublishSubject
+import okhttp3.Response
+import kotlin.concurrent.thread
 
 // websocket reference: https://www.pelion.com/docs/device-management/current/integrate-web-app/event-notification.html#websocket-interface
 
@@ -14,62 +13,100 @@ class PelionRepo : RepositoryCommon() {
     private val apiKey = "ak_1MDE1ZTViZDZjNzBjMDI0MjBhMDExNDA1MDAwMDAwMDA015f5da4433c02420a011b0800000000OaUDAhYmVjiD1WjBj6vG0kIamO6FvC6L"
     private val requstHostname = "api.us-east-1.mbedcloud.com"
     private val requestUrl = "https://$requstHostname"
-    private val websocketUrl = "wss://$requstHostname/notification/websocket-connect/"
-    val pelionNotiSubject : PublishSubject<HashMap<String, Any?>> = PublishSubject.create()
-    val pelionRequestSubject : PublishSubject<HashMap<String, Any?>> = PublishSubject.create()
-
-    private val gson = Gson()
+    private val websocketUrl = "wss://$requstHostname/v2/notification/websocket-connect"
+    private val deviceId = "016c08b9c7b9000000000001001002ab"
+    private val resource = "3303/0/5700"
+    val pelionDataSubject : PublishSubject<RxWebSocketInfo> = PublishSubject.create()
+    val pelionRequestSubject : PublishSubject<Response> = PublishSubject.create()
 
     private val restApi = RxRestApi(requestUrl, apiKey)
 
-    private val lifeCycleDisposable = CompositeDisposable()
-
     var isWebSocketConnected = RxVar(false)
 
-    init {
+    fun openWebSocket() {
         val websocketDisposable = RxWebSocket(websocketUrl, apiKey).notificationChannel.subscribeOn(Schedulers.io())
             .subscribe({
+                Log.d(this.javaClass.simpleName, "it.status=${it.status}")
                 when (it.status) {
-                    Open -> isWebSocketConnected.value = true
-                    Failure -> {
+                    RxWebStatus.Open -> isWebSocketConnected.value = true
+                    RxWebStatus.Failure -> {
+                        if (it is RxWebSocketFailure) {
+                            isWebSocketConnected.value = false
+                            pelionDataSubject.onError(it.throwable)
+                        }
+                    }
+                    RxWebStatus.Closing -> {
                         isWebSocketConnected.value = false
-                        pelionNotiSubject.onError(it.throwable!!)
+                        pelionDataSubject.onNext(it)
                     }
-                    Closing -> {
+                    RxWebStatus.Message -> if (isWebSocketConnected.value) {
+                        notifyRepoIsAlive()
+                        pelionDataSubject.onNext(it)
+                    }
+                    RxWebStatus.Closed -> {
                         isWebSocketConnected.value = false
+                        pelionDataSubject.onNext(it)
                     }
-                    Message -> if (isWebSocketConnected.value) {
-                        val map : HashMap<String, Any?> = gson.fromJsonString(it.response?.body()?.string()!!)
-                        pelionNotiSubject.onNext(map)
-                    }
-                    Closed -> isWebSocketConnected.value = false
                 }
             }, {
-                it.printStackTrace()
+                pelionDataSubject.onError(it)
             })
         lifeCycleDisposable.add(websocketDisposable)
+    }
 
-        val restDisposable = restApi.restSubject.subscribeOn(Schedulers.io())
+    fun createNotificationChannel() : HashMap<String, Any?> = put("v2/notification/websocket")
+
+    fun getNotificationChannelStatus() : HashMap<String, Any?> = get("v2/notification/websocket")
+
+    fun subscribeToResource(deviceId: String? = null, resource: String? = null) : HashMap<String, Any?> {
+        return if (resource != null && deviceId != null) {
+            put("v2/subscriptions/$deviceId/$resource")
+        }else {
+            put("v2/subscriptions/${this.deviceId}/${this.resource}")
+        }
+    }
+
+    fun get(subUrl: String) : HashMap<String, Any?> = restApi.syncGet(subUrl)
+
+    fun put(subUrl: String, json: String? = null) : HashMap<String, Any?> = restApi.syncPut(subUrl, json)
+
+    fun put(subUrl: String, content: HashMap<String, Any?>) : HashMap<String, Any?> = restApi.syncPut(subUrl, content)
+
+    fun post(subUrl: String, json: String) : HashMap<String, Any?> = restApi.syncPost(subUrl, json)
+
+    fun post(subUrl: String, content: HashMap<String, Any?>) : HashMap<String, Any?> = restApi.syncPost(subUrl, content)
+
+    // Implement abstract functions
+    override fun start() {
+        startNotifyTimer()
+        val dis = restApi.restSubject.subscribeOn(Schedulers.io())
             .subscribe({
+                debug("pelion response = $it")
                 pelionRequestSubject.onNext(it)
             }, {
                 pelionRequestSubject.onError(it)
             })
-        lifeCycleDisposable.add(restDisposable)
+        lifeCycleDisposable.add(dis)
+        thread {
+            //若OPEN失敗會有問題，要做個定時檢查
+            val map = createNotificationChannel()
+            if (map["code"] == 200) {
+                val status = getNotificationChannelStatus()
+                if (status["code"] == 200) {
+                    openWebSocket()
+                    val result = subscribeToResource()
+                    debug("subs result = $result")
+                }
+            }
+        }
     }
 
-    fun get(subUrl: String) = restApi.get(subUrl)
+    override fun pause() {
+        stopTimer()
+        lifeCycleDisposable.clear()
+    }
 
-    fun put(subUrl: String, json: String) = restApi.put(subUrl, json)
-
-    fun put(subUrl: String, content: HashMap<String, Any?>) = restApi.put(subUrl, content)
-
-    fun post(subUrl: String, json: String) = restApi.post(subUrl, json)
-
-    fun post(subUrl: String, content: HashMap<String, Any?>) = restApi.post(subUrl, content)
-
-
-    fun destroy() {
+    override fun destroy() {
         lifeCycleDisposable.dispose()
     }
 }

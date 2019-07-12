@@ -48,7 +48,7 @@ class ExampleInstrumentedTest
     fun testAliyunRepo() {
         val signal = CountDownLatch(1)
         val aliyun = AliyunRepo()
-        aliyun.aliyunSubject.subscribeOn(Schedulers.io()).subscribe({
+        aliyun.aliyunDataSubject.subscribeOn(Schedulers.io()).subscribe({
             Log.d(this.javaClass.simpleName, "message = $it")
             aliyun.destroy()
             signal.countDown()
@@ -64,14 +64,29 @@ class ExampleInstrumentedTest
     fun testPelionGet() {
         val signal = CountDownLatch(1)
         val pelionRepo = PelionRepo()
-        pelionRepo.pelionRequestSubject.subscribe({
-            Log.d(this.javaClass.simpleName, "message = $it")
-            signal.countDown()
+        pelionRepo.start()
+
+        pelionRepo.isWebSocketConnected.observable.filter { isConnected ->
+            Log.d(this.javaClass.simpleName, "isConnected = $isConnected")
+            isConnected
+        }.flatMap {
+            pelionRepo.pelionDataSubject
+        }.subscribeOn(Schedulers.io()).subscribe({
+            Log.d(this.javaClass.simpleName, "notiSubject = $it")
         }, {
             it.printStackTrace()
-            signal.countDown()
         })
-        pelionRepo.get("v3/devices/")
+
+        val map = pelionRepo.createNotificationChannel()
+        if (map["code"] == 200) {
+            val status = pelionRepo.getNotificationChannelStatus()
+            if (status["code"] == 200) {
+                pelionRepo.openWebSocket()
+                val result = pelionRepo.subscribeToResource()
+                Log.d(this.javaClass.simpleName, "subs result = $result")
+            }
+        }
+
         signal.await()
     }
 
@@ -84,7 +99,7 @@ class ExampleInstrumentedTest
             Log.d(this.javaClass.simpleName, "request response = $it")
         }
 
-        pelionRepo.pelionNotiSubject.subscribe({
+        pelionRepo.pelionDataSubject.subscribe({
             Log.d(this.javaClass.simpleName, "noti response = $it")
             signal.countDown()
         }, {

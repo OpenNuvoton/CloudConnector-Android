@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">CloudConnector</string>
+    <string name="toggle_cloud_button">Toggle %1$s</string>
 </resources>

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="toggle_cloud_button">切换 %1$s</string>
+    <string name="app_name">云端数据显示</string>
+</resources>
