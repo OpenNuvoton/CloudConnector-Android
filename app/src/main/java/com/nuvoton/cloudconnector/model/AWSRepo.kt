@@ -89,4 +89,11 @@ class AWSRepo(applicationContext: Context) : RepositoryCommon() {
     override fun destroy() {
         lifeCycleDisposable.dispose()
     }
+
+    override fun getCloudSetting(): List<String> {
+        return listOf("CognitoIdPool:\n$mCognitoIdentityPoolId",
+            "Region:\n${mRegion.getName()}",
+            "IoTEndPoint:\n$mIoTEndpoint",
+            "IoTThingName:\n$mIoTThingName")
+    }
 }

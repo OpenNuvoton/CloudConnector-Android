@@ -53,4 +53,9 @@ class AliyunRepo : RepositoryCommon() {
     override fun destroy() {
         mqttClient.finalize()
     }
+
+    override fun getCloudSetting(): List<String> {
+        return listOf("Host name:\n$hostname",
+            "MQTTTopic:\n$readTopic")
+    }
 }

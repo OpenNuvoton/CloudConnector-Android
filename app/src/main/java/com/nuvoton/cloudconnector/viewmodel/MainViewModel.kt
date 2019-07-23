@@ -10,6 +10,7 @@ import com.nuvoton.cloudconnector.fromJsonString
 import com.nuvoton.cloudconnector.model.AWSRepo
 import com.nuvoton.cloudconnector.model.AliyunRepo
 import com.nuvoton.cloudconnector.model.PelionRepo
+import com.nuvoton.cloudconnector.viewmodel.RepoOption.*
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.schedulers.Schedulers
 import io.reactivex.subjects.PublishSubject
@@ -129,6 +130,13 @@ class MainViewModel(context: Context) {
         aliyunRepo.destroy()
         pelionRepo.destroy()
     }
+
+    fun getCloudSetting(option: RepoOption) : List<String> =
+        when (option) {
+            AWS -> awsRepo.getCloudSetting()
+            PELION -> pelionRepo.getCloudSetting()
+            ALIYUN -> aliyunRepo.getCloudSetting()
+        }
 }
 
 enum class RepoOption {

@@ -4,17 +4,16 @@ import android.content.pm.ActivityInfo
 import android.graphics.Color
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.view.MotionEvent
-import android.view.View
-import android.view.WindowManager
+import android.view.*
 import android.widget.Button
 import android.widget.LinearLayout
+import com.afollestad.materialdialogs.MaterialDialog
+import com.afollestad.materialdialogs.list.listItems
 import com.github.mikephil.charting.charts.LineChart
 import com.github.mikephil.charting.components.Description
 import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData
 import com.github.mikephil.charting.data.LineDataSet
-import com.github.mikephil.charting.interfaces.datasets.ILineDataSet
 import com.nuvoton.cloudconnector.R
 import com.nuvoton.cloudconnector.lineChart
 import com.nuvoton.cloudconnector.viewmodel.MainViewModel
@@ -27,12 +26,14 @@ import org.jetbrains.anko.constraint.layout.constraintLayout
 import org.jetbrains.anko.sdk27.coroutines.onTouch
 
 import com.jakewharton.rxbinding3.view.touches
-import com.nuvoton.cloudconnector.debug
 import io.reactivex.subjects.PublishSubject
 import java.util.concurrent.TimeUnit
 import com.microsoft.appcenter.crashes.Crashes
 import com.microsoft.appcenter.analytics.Analytics
 import com.microsoft.appcenter.AppCenter
+import com.nuvoton.cloudconnector.debug
+import com.nuvoton.cloudconnector.viewmodel.RepoOption
+import io.reactivex.Observable
 
 class MainActivity : AppCompatActivity() {
     lateinit var mainViewModel: MainViewModel
@@ -44,6 +45,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var awsDataSet: LineDataSet
     private lateinit var aliyunDataSet: LineDataSet
     private lateinit var pelionDataSet: LineDataSet
+    private var timestamp = "0"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -65,6 +67,69 @@ class MainActivity : AppCompatActivity() {
         subscribeStatusSubjects(mainViewModel.mvAWSStatusSubject, awsButton, R.drawable.button_red_up)
         subscribeStatusSubjects(mainViewModel.mvPelionStatusSubject, pelionButton, R.drawable.button_green_up)
         subscribeStatusSubjects(mainViewModel.mvAliyunStatusSubject, aliyunButton, R.drawable.button_blue_up)
+
+        startSweepingDatasets()
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.main_menu, menu)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        when (item.itemId) {
+            R.id.show_aws -> openDialog(RepoOption.AWS)
+            R.id.show_pelion -> openDialog(RepoOption.PELION)
+            R.id.show_aliyun -> openDialog(RepoOption.ALIYUN)
+        }
+        return super.onOptionsItemSelected(item)
+    }
+
+    override fun onStart() {
+        super.onStart()
+        mainViewModel.start()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        mainViewModel.pause()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        mainViewModel.destroy()
+    }
+
+    private fun openDialog(option: RepoOption) {
+        val list = mainViewModel.getCloudSetting(option)
+        MaterialDialog(this).show {
+            listItems(items = list)
+        }
+    }
+
+    private fun startSweepingDatasets() {
+        Observable.interval(3, TimeUnit.SECONDS).subscribeOn(Schedulers.io())
+            .map {
+                val limit = timestamp.toFloat() - 20f
+
+                while (awsDataSet.entryCount > 0 && awsDataSet.getEntryForIndex(0).x < limit)
+                    awsDataSet.removeFirst()
+                while (pelionDataSet.entryCount > 0 && pelionDataSet.getEntryForIndex(0).x < limit)
+                    pelionDataSet.removeFirst()
+                while (aliyunDataSet.entryCount > 0 && aliyunDataSet.getEntryForIndex(0).x < limit)
+                    aliyunDataSet.removeFirst()
+            }
+            .observeOn(AndroidSchedulers.mainThread())
+            .`as`(AutoDispose.autoDisposable(AndroidLifecycleScopeProvider.from(this)))
+            .subscribe({
+                lineChart?.data?.notifyDataChanged()
+                lineChart?.notifyDataSetChanged()
+                lineChart?.invalidate()
+            }, {
+                debug("Sweep Error")
+                it.printStackTrace()
+            })
     }
 
     private fun switchRepo(dataSet: LineDataSet) {
@@ -91,22 +156,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    override fun onStart() {
-        super.onStart()
-        mainViewModel.start()
-    }
-
-    override fun onPause() {
-        super.onPause()
-        mainViewModel.pause()
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        mainViewModel.destroy()
-    }
-
     private fun subscribeStatusSubjects(subject: PublishSubject<Boolean>, button: Button?, resUpId: Int) {
         subject.subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
@@ -128,15 +177,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun initDataSets() {
-        awsDataSet = LineDataSet(arrayListOf(Entry(0f, 0f)), "AWS")
+        awsDataSet = LineDataSet(arrayListOf<Entry>(), "AWS")
         awsDataSet.color = Color.RED
         awsDataSet.setCircleColor(Color.RED)
         switchRepo(awsDataSet)
-        pelionDataSet = LineDataSet(arrayListOf(Entry(0f, 0f)), "Pelion")
+        pelionDataSet = LineDataSet(arrayListOf<Entry>(), "Pelion")
         pelionDataSet.color = Color.GREEN
         pelionDataSet.setCircleColor(Color.GREEN)
         switchRepo(pelionDataSet)
-        aliyunDataSet = LineDataSet(arrayListOf(Entry(0f, 0f)), "ALiYun")
+        aliyunDataSet = LineDataSet(arrayListOf<Entry>(), "ALiYun")
         aliyunDataSet.color = Color.BLUE
         aliyunDataSet.setCircleColor(Color.BLUE)
         switchRepo(aliyunDataSet)
@@ -145,17 +194,9 @@ class MainActivity : AppCompatActivity() {
         subject.subscribeOn(Schedulers.io())
             .map {
                 val value = it["temperature"]?.toString()
-                val position = it["timestamp"]?.toString()
+                timestamp = it["timestamp"]?.toString() ?: "0"
                 if (value != null) {
-                    lineDataSet.addEntry(Entry(position!!.toFloat(), value.toFloat()))
-
-                    val limit = position.toFloat() - 30f
-                    while (lineDataSet.getEntryForIndex(0).x < limit)
-                        lineDataSet.removeFirst()
-
-                    val positionZero = lineDataSet.getEntryForIndex(0)
-                    if (positionZero.y == 0f)
-                        lineDataSet.removeFirst()
+                    lineDataSet.addEntry(Entry(timestamp.toFloat(), value.toFloat()))
                 }
             }.observeOn(AndroidSchedulers.mainThread())
             .`as`(AutoDispose.autoDisposable(AndroidLifecycleScopeProvider.from(this)))
@@ -180,6 +221,7 @@ class MainActivity : AppCompatActivity() {
         constraintLayout {
             id = View.generateViewId()
             background = resources.getDrawable(R.drawable.background, theme)
+
             val tab = linearLayout {
                 id = View.generateViewId()
                 orientation = LinearLayout.HORIZONTAL

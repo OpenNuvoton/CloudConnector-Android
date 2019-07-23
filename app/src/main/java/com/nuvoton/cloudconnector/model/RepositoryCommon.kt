@@ -42,4 +42,6 @@ abstract class RepositoryCommon {
     abstract fun start()
     abstract fun pause()
     abstract fun destroy()
+
+    abstract fun getCloudSetting() : List<String>
 }

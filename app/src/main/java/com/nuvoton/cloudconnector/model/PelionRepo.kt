@@ -109,4 +109,11 @@ class PelionRepo : RepositoryCommon() {
     override fun destroy() {
         lifeCycleDisposable.dispose()
     }
+
+    override fun getCloudSetting(): List<String> {
+        val splitKey = apiKey.subSequence(0, 8).toString()
+        return listOf("ApiKey:\n$splitKey",
+            "DeviceId:\n$deviceId",
+            "Resource:\n$resource")
+    }
 }

@@ -126,4 +126,8 @@ class Repository private constructor() : RepositoryCommon() {
         aliyunRepo.destroy()
         pelionRepo.destroy()
     }
+
+    override fun getCloudSetting(): List<String> {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
 }
