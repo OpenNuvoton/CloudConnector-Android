@@ -1,7 +1,7 @@
 package com.nuvoton.cloudconnector.model
 
-import com.example.aiotcore.AiotMqttClient
-import com.example.aiotcore.AiotMqttException
+import com.linkkit.aiotcore.AiotMqttClient
+import com.linkkit.aiotcore.AiotMqttException
 import com.nuvoton.cloudconnector.fromJsonString
 import io.reactivex.subjects.PublishSubject
 
@@ -22,7 +22,7 @@ class AliyunRepo : RepositoryCommon() {
 
     // Implement abstract functions
     override fun start() {
-        mqttClient.setHostName(hostname)
+        mqttClient.setHost(hostname)
         mqttClient.setPort(port)
         mqttClient.setProductKey(productKey)
         mqttClient.setDeviceName(deviceName)
@@ -30,7 +30,7 @@ class AliyunRepo : RepositoryCommon() {
         try {
             startNotifyTimer()
             mqttClient.connect()
-            mqttClient.subscribe(readTopic, qos) { topic, payload ->
+            mqttClient.subscribe(readTopic, qos) { topic, qos, payload ->
                 // remove last 2 bytes to bypass the issue
                 val payloadString = String(payload.copyOfRange(0, payload.size - 2))
                 // change to hashmap in order to map all data sources

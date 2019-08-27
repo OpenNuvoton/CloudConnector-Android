@@ -4,14 +4,18 @@ apply plugin: 'kotlin-android'
 
 apply plugin: 'kotlin-android-extensions'
 
+def versionMajor = 1
+def versionMinor = 1
+def versionPatch = 0
+
 android {
     compileSdkVersion 29
     defaultConfig {
         applicationId "com.nuvoton.cloudconnector"
         minSdkVersion 21
         targetSdkVersion 29
-        versionCode 101
-        versionName "1.0.1"
+        versionCode versionMajor * 10000 + versionMinor * 100 + versionPatch
+        versionName "${versionMajor}.${versionMinor}.${versionPatch}"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
@@ -104,11 +108,12 @@ dependencies {
     implementation "com.amazonaws:aws-android-sdk-iot:$aws_version"
 
     implementation 'com.github.PhilJay:MPAndroidChart:v3.1.0'
-    implementation project(path: ':aiotcore-debug')
 
     implementation 'com.google.code.gson:gson:2.8.5'
 
     implementation 'com.squareup.okhttp3:okhttp:3.14.2'
 
     implementation 'com.afollestad.material-dialogs:core:3.1.0'
+
+    implementation 'com.linkkit.aiotcore:aiotcore:0.0.2'
 }

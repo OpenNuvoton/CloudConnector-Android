@@ -14,7 +14,7 @@ class PelionRepo : RepositoryCommon() {
     private val requstHostname = "api.us-east-1.mbedcloud.com"
     private val requestUrl = "https://$requstHostname"
     private val websocketUrl = "wss://$requstHostname/v2/notification/websocket-connect"
-    private val deviceId = "016c08b9c7b9000000000001001002ab"
+    private val deviceId = "016c270ea6dd000000000001001000ac"
     private val resource = "3303/0/5700"
     val pelionDataSubject : PublishSubject<RxWebSocketInfo> = PublishSubject.create()
     val pelionRequestSubject : PublishSubject<Response> = PublishSubject.create()

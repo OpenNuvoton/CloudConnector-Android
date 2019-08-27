@@ -7,6 +7,7 @@ import android.os.Bundle
 import android.view.*
 import android.widget.Button
 import android.widget.LinearLayout
+import androidx.core.view.marginTop
 import com.afollestad.materialdialogs.MaterialDialog
 import com.afollestad.materialdialogs.list.listItems
 import com.github.mikephil.charting.charts.LineChart
@@ -46,6 +47,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var aliyunDataSet: LineDataSet
     private lateinit var pelionDataSet: LineDataSet
     private var timestamp = "0"
+    private var zoomRatio = 1f
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -65,10 +67,10 @@ class MainActivity : AppCompatActivity() {
         subscribeSubjects(mainViewModel.mvAliyunSubject, aliyunDataSet)
 
         subscribeStatusSubjects(mainViewModel.mvAWSStatusSubject, awsButton, R.drawable.button_red_up)
-        subscribeStatusSubjects(mainViewModel.mvPelionStatusSubject, pelionButton, R.drawable.button_green_up)
-        subscribeStatusSubjects(mainViewModel.mvAliyunStatusSubject, aliyunButton, R.drawable.button_blue_up)
+        subscribeStatusSubjects(mainViewModel.mvPelionStatusSubject, pelionButton, R.drawable.button_blue_up)
+        subscribeStatusSubjects(mainViewModel.mvAliyunStatusSubject, aliyunButton, R.drawable.button_green_up)
 
-        startSweepingDatasets()
+//        startSweepingDatasets()
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
@@ -172,7 +174,7 @@ class MainActivity : AppCompatActivity() {
         if (isAlive) {
             button?.setBackgroundResource(resUpId)
         }else {
-            button?.setBackgroundResource(R.drawable.button_gray_up)
+            button?.setBackgroundResource(R.drawable.button_gray_up_1)
         }
     }
 
@@ -182,12 +184,12 @@ class MainActivity : AppCompatActivity() {
         awsDataSet.setCircleColor(Color.RED)
         switchRepo(awsDataSet)
         pelionDataSet = LineDataSet(arrayListOf<Entry>(), "Pelion")
-        pelionDataSet.color = Color.GREEN
-        pelionDataSet.setCircleColor(Color.GREEN)
+        pelionDataSet.color = Color.BLUE
+        pelionDataSet.setCircleColor(Color.BLUE)
         switchRepo(pelionDataSet)
         aliyunDataSet = LineDataSet(arrayListOf<Entry>(), "ALiYun")
-        aliyunDataSet.color = Color.BLUE
-        aliyunDataSet.setCircleColor(Color.BLUE)
+        aliyunDataSet.color = Color.GREEN
+        aliyunDataSet.setCircleColor(Color.GREEN)
         switchRepo(aliyunDataSet)
     }
     private fun subscribeSubjects(subject: PublishSubject<Map<String, Any?>>, lineDataSet: LineDataSet) {
@@ -201,6 +203,12 @@ class MainActivity : AppCompatActivity() {
             }.observeOn(AndroidSchedulers.mainThread())
             .`as`(AutoDispose.autoDisposable(AndroidLifecycleScopeProvider.from(this)))
             .subscribe({
+                if (lineDataSet.entryCount >= 60) {
+                    zoomRatio = lineDataSet.entryCount.toFloat() / 60.toFloat()
+                    lineChart?.moveViewToX(lineDataSet.entryCount.toFloat() - 1)
+                    lineChart?.zoom(0f, 1f, 0f, 0f)
+                    lineChart?.zoom(zoomRatio, 1f, 0f, 0f)
+                }
                 lineChart?.data?.notifyDataChanged()
                 lineChart?.notifyDataSetChanged()
                 lineChart?.invalidate()
@@ -229,9 +237,10 @@ class MainActivity : AppCompatActivity() {
                 button {
                     this@MainActivity.awsButton = this
                     id = View.generateViewId()
-                    setBackgroundResource(R.drawable.button_gray_up)
+                    setBackgroundResource(R.drawable.button_gray_up_1)
                     textColor = Color.WHITE
-                    textSize = 20f
+                    textSize = 15f
+                    setPadding(0, 0, 0, 10)
                     val text = resources.getString(R.string.toggle_cloud_button, "AWS")
                     setText(text)
                     touches { event ->
@@ -256,19 +265,20 @@ class MainActivity : AppCompatActivity() {
                 button {
                     this@MainActivity.pelionButton = this
                     id = View.generateViewId()
-                    setBackgroundResource(R.drawable.button_gray_up)
+                    setBackgroundResource(R.drawable.button_gray_up_1)
                     textColor = Color.WHITE
-                    textSize = 20f
+                    textSize = 15f
+                    setPadding(0, 0, 0, 10)
                     val text = resources.getString(R.string.toggle_cloud_button, "Pelion")
                     setText(text)
                     onTouch { v, event ->
                         when (event.action) {
                             MotionEvent.ACTION_DOWN -> {
-                                setBackgroundResource(R.drawable.button_green_down)
+                                setBackgroundResource(R.drawable.button_blue_down)
                                 this@MainActivity.switchRepo(pelionDataSet)
                             }
                             MotionEvent.ACTION_UP -> {
-                                setBackgroundResource(R.drawable.button_green_up)
+                                setBackgroundResource(R.drawable.button_blue_up)
                             }
                         }
                     }
@@ -280,19 +290,20 @@ class MainActivity : AppCompatActivity() {
                 button {
                     this@MainActivity.aliyunButton = this
                     id = View.generateViewId()
-                    setBackgroundResource(R.drawable.button_gray_up)
+                    setBackgroundResource(R.drawable.button_gray_up_1)
                     textColor = Color.WHITE
-                    textSize = 20f
+                    textSize = 15f
+
                     val text = resources.getString(R.string.toggle_cloud_button, "Aliyun")
                     setText(text)
                     onTouch { v, event ->
                         when (event.action) {
                             MotionEvent.ACTION_DOWN -> {
-                                setBackgroundResource(R.drawable.button_blue_down)
+                                setBackgroundResource(R.drawable.button_green_down)
                                 this@MainActivity.switchRepo(aliyunDataSet)
                             }
                             MotionEvent.ACTION_UP -> {
-                                setBackgroundResource(R.drawable.button_blue_up)
+                                setBackgroundResource(R.drawable.button_green_up)
                             }
                         }
                     }
@@ -304,6 +315,7 @@ class MainActivity : AppCompatActivity() {
                 topToTop = rootView.id
                 startToStart = rootView.id
                 endToEnd = rootView.id
+                setMargins(0, 8, 0, 8)
             }
 
             val bottomGap = view {
@@ -321,7 +333,7 @@ class MainActivity : AppCompatActivity() {
                 data = LineData()
                 val des = Description()
                 des.text = "\u2103"
-                des.textSize = 20f
+                des.textSize = 15f
                 description = des
             }.lparams(width = matchParent, height = 0) {
                 topToBottom = tab.id

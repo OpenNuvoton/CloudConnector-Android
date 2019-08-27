@@ -28,7 +28,7 @@ class Repository private constructor() : RepositoryCommon() {
     set(value) {
         awsRepo = AWSRepo(value!!)
         bindStatusCallback(AWS, awsRepo)
-        awsRepo.requestIoTData()
+//        awsRepo.requestIoTData()
         field = value
     }
 

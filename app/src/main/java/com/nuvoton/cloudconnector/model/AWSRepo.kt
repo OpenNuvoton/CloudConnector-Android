@@ -10,7 +10,9 @@ import com.nuvoton.cloudconnector.fromJsonString
 import io.reactivex.Observable
 import io.reactivex.schedulers.Schedulers
 import io.reactivex.subjects.PublishSubject
+import java.util.concurrent.Semaphore
 import java.util.concurrent.TimeUnit
+import kotlin.concurrent.thread
 
 // icon credits: <div>Icons made by <a href="https://www.freepik.com/?__hstc=57440181.bc7bb437dc895a5e02ce4844a8fedf46.1561102499736.1561367496128.1562656684616.5&__hssc=57440181.7.1562656684616&__hsfp=2168691457" title="Freepik">Freepik</a> from <a href="https://www.flaticon.com/"                 title="Flaticon">www.flaticon.com</a> is licensed by <a href="http://creativecommons.org/licenses/by/3.0/"                 title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a></div>
 
@@ -23,6 +25,8 @@ class AWSRepo(applicationContext: Context) : RepositoryCommon() {
     private var mRegion = Regions.US_EAST_1
     val awsDataSubject : PublishSubject<Map<String, Any?>> = PublishSubject.create()
     private val iotRequestSubject : PublishSubject<String> = PublishSubject.create()
+    private var polling = false
+    private var semaphore = Semaphore(1)
 
     private var test = 0
 
@@ -54,6 +58,7 @@ class AWSRepo(applicationContext: Context) : RepositoryCommon() {
                     hashmap.putAll(reported)
                     hashmap["timestamp"] = getTimeSecond()
                     awsDataSubject.onNext(hashmap)
+                    semaphore.release()
                 }
             }, {
                 it.printStackTrace()
@@ -66,22 +71,32 @@ class AWSRepo(applicationContext: Context) : RepositoryCommon() {
     }
 
     fun requestIoTData() {
-        val dis = Observable.interval(1, TimeUnit.SECONDS).subscribeOn(Schedulers.io())
-            .subscribe({
-                iotRequestSubject.onNext(mIoTThingName)
-            }, {
-                it.printStackTrace()
-            })
-        lifeCycleDisposable.add(dis)
+        thread {
+            while(polling) {
+                getIoTLatestStatus()
+                if (!semaphore.tryAcquire())
+                    Thread.sleep(500)
+            }
+        }
+//        val dis = Observable.interval(1, TimeUnit.SECONDS).subscribeOn(Schedulers.io())
+//            .subscribe({
+//                iotRequestSubject.onNext(mIoTThingName)
+//            }, {
+//                it.printStackTrace()
+//            })
+//        lifeCycleDisposable.add(dis)
     }
 
     // Implement abstract functions
     override fun start() {
         startNotifyTimer()
+        polling = true
         requestIoTData()
     }
 
     override fun pause() {
+        polling = false
+        semaphore = Semaphore(1)
         stopTimer()
         lifeCycleDisposable.clear()
     }
