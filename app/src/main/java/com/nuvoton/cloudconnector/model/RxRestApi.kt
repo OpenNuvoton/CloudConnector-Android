@@ -35,6 +35,11 @@ class RxRestApi(val hostUrl: String, val apiKey: String) {
         return syncRestAction(RESTAction.POST, subUrl, content)
     }
 
+    fun syncDelete(subUrl: String) : HashMap<String, Any?> {
+        return syncRestAction(RESTAction.DELETE, subUrl)
+    }
+
+
     private fun syncRestAction(action: RESTAction, subUrl: String, json: String?) : HashMap<String, Any?> {
         val map : HashMap<String, Any?> = gson.fromJsonString(json ?: "{}")
         return syncRestAction(action, subUrl, map)
@@ -68,12 +73,19 @@ class RxRestApi(val hostUrl: String, val apiKey: String) {
                     .post(builder.build())
                     .build()
             }
+            RESTAction.DELETE -> {
+                Request.Builder()
+                    .addHeader("authorization", "Bearer $apiKey")
+                    .url(url)
+                    .delete(builder.build())
+                    .build()
+            }
         }
         val response = client.newCall(request).execute()
         return hashMapOf(
             "code" to response.code(),
             "message" to response.message(),
-            "body" to response.body())
+            "body" to response.body()?.string())
     }
 
     fun asyncGet(subUrl: String) {
@@ -129,6 +141,13 @@ class RxRestApi(val hostUrl: String, val apiKey: String) {
                             .post(builder.build())
                             .build()
                     }
+                    RESTAction.DELETE -> {
+                        Request.Builder()
+                            .addHeader("authorization", "Bearer $apiKey")
+                            .url(it)
+                            .delete(builder.build())
+                            .build()
+                    }
                 }
                 client.newCall(request).execute()
             }.subscribe({
@@ -147,5 +166,6 @@ class RxRestApi(val hostUrl: String, val apiKey: String) {
         GET,
         PUT,
         POST,
+        DELETE
     }
 }

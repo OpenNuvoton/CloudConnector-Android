@@ -82,7 +82,6 @@ class MainViewModel(context: Context) {
         val pelion = pelionRepo.pelionDataSubject
             .subscribeOn(Schedulers.io())
             .subscribe({
-                //                debug("pelion data=$it")
                 if (it is RxWebSocketMessage) {
                     val json : String =
                         if (it.text != null)
