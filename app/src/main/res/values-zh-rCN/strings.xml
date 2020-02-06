@@ -2,4 +2,9 @@
 <resources>
     <string name="toggle_cloud_button">切换 %1$s</string>
     <string name="app_name">云端数据显示</string>
+    <string name="pref_title_aliyun">阿里云</string>
+    <string name="pref_title_aliyun_product_key">阿里云 Product Key</string>
+    <string name="pref_title_aliyun_device_name">阿里云 Device Name</string>
+    <string name="pref_title_aliyun_device_secret">阿里云 Device Secret</string>
+    <string name="settings">设置</string>
 </resources>

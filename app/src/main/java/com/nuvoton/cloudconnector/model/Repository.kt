@@ -130,4 +130,8 @@ class Repository private constructor() : RepositoryCommon() {
     override fun getCloudSetting(): List<String> {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
+
+    override fun updateSetting(context: Context) {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
 }

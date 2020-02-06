@@ -1,5 +1,6 @@
 package com.nuvoton.cloudconnector.model
 
+import android.content.Context
 import com.google.gson.Gson
 import com.nuvoton.cloudconnector.RxCountDown
 import com.nuvoton.cloudconnector.RxVar
@@ -44,4 +45,5 @@ abstract class RepositoryCommon {
     abstract fun destroy()
 
     abstract fun getCloudSetting() : List<String>
+    abstract fun updateSetting(context: Context)
 }

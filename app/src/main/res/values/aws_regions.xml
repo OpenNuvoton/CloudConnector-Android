@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="region_name">
+        <item>US East (N. Virginia)</item>
+        <item>US East (Ohio)</item>
+        <item>US West (N. California)</item>
+        <item>US West (Oregon)</item>
+        <item>Asia Pacific (Hong Kong)</item>
+        <item>Asia Pacific (Mumbai)</item>
+        <item>Asia Pacific (Osaka-Local)</item>
+        <item>Asia Pacific (Seoul)</item>
+        <item>Asia Pacific (Singapore)</item>
+        <item>Asia Pacific (Sydney)</item>
+        <item>Asia Pacific (Tokyo)</item>
+        <item>Canada (Central)</item>
+        <item>Europe (Frankfurt)</item>
+        <item>Europe (Ireland)</item>
+        <item>Europe (London)</item>
+        <item>Europe (Paris)</item>
+        <item>Europe (Stockholm)</item>
+        <item>Middle East (Bahrain)</item>
+        <item>South America (São Paulo)</item>
+    </string-array>
+
+    <string-array name="region_code">
+        <item>us-east-1</item>
+        <item>us-east-2</item>
+        <item>us-west-1</item>
+        <item>us-west-2</item>
+        <item>ap-east-1</item>
+        <item>ap-south-1</item>
+        <item>ap-northeast-3</item>
+        <item>ap-northeast-2</item>
+        <item>ap-southeast-1</item>
+        <item>ap-southeast-2</item>
+        <item>ap-northeast-1</item>
+        <item>ca-central-1</item>
+        <item>eu-central-1</item>
+        <item>eu-west-1</item>
+        <item>eu-west-2</item>
+        <item>eu-west-3</item>
+        <item>eu-north-1</item>
+        <item>me-south-1</item>
+        <item>sa-east-1</item>
+    </string-array>
+</resources>

@@ -3,10 +3,7 @@ package com.nuvoton.cloudconnector.viewmodel
 import android.content.Context
 import android.util.Base64
 import android.util.Log
-import com.nuvoton.cloudconnector.RxWebSocketInfo
-import com.nuvoton.cloudconnector.RxWebSocketMessage
-import com.nuvoton.cloudconnector.debug
-import com.nuvoton.cloudconnector.fromJsonString
+import com.nuvoton.cloudconnector.*
 import com.nuvoton.cloudconnector.model.AWSRepo
 import com.nuvoton.cloudconnector.model.AliyunRepo
 import com.nuvoton.cloudconnector.model.PelionRepo
@@ -15,6 +12,7 @@ import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.schedulers.Schedulers
 import io.reactivex.subjects.PublishSubject
 import java.nio.charset.Charset
+import kotlin.concurrent.thread
 
 class MainViewModel(context: Context) {
     val mvAWSSubject : PublishSubject<Map<String, Any?>> = PublishSubject.create()
@@ -32,54 +30,49 @@ class MainViewModel(context: Context) {
     private val lifeCycleDisposables = CompositeDisposable()
 
     private fun bindStatusSubjects() {
-        val aws = awsRepo.getIsAlive().observable
+        awsRepo.getIsAlive().observable
             .subscribeOn(Schedulers.io())
             .subscribe({
                 mvAWSStatusSubject.onNext(it)
             }, {
                 it.printStackTrace()
-            })
-        lifeCycleDisposables.add(aws)
+            }).disposeBy(lifeCycleDisposables)
 
-        val aliyun = aliyunRepo.getIsAlive().observable
+        aliyunRepo.getIsAlive().observable
             .subscribeOn(Schedulers.io())
             .subscribe({
                 mvAliyunStatusSubject.onNext(it)
             }, {
                 it.printStackTrace()
-            })
-        lifeCycleDisposables.add(aliyun)
+            }).disposeBy(lifeCycleDisposables)
 
-        val pelion = pelionRepo.getIsAlive().observable
+        pelionRepo.getIsAlive().observable
             .subscribeOn(Schedulers.io())
             .subscribe({
                 mvPelionStatusSubject.onNext(it)
             }, {
                 it.printStackTrace()
-            })
-        lifeCycleDisposables.add(pelion)
+            }).disposeBy(lifeCycleDisposables)
     }
 
     private fun bindDataSubjects() {
-        val aws = awsRepo.awsDataSubject
+        awsRepo.awsDataSubject
             .subscribeOn(Schedulers.io())
             .subscribe({
                 mvAWSSubject.onNext(it)
             }, {
                 it.printStackTrace()
-            })
-        lifeCycleDisposables.add(aws)
+            }).disposeBy(lifeCycleDisposables)
 
-        val aliyun = aliyunRepo.aliyunDataSubject
+        aliyunRepo.aliyunDataSubject
             .subscribeOn(Schedulers.io())
             .subscribe({
                 mvAliyunSubject.onNext(it)
             }, {
                 it.printStackTrace()
-            })
-        lifeCycleDisposables.add(aliyun)
+            }).disposeBy(lifeCycleDisposables)
 
-        val pelion = pelionRepo.pelionDataSubject
+        pelionRepo.pelionDataSubject
             .subscribeOn(Schedulers.io())
             .subscribe({
                 if (it is RxWebSocketMessage) {
@@ -105,19 +98,27 @@ class MainViewModel(context: Context) {
                 }
             }, {
                 it.printStackTrace()
-            })
-        lifeCycleDisposables.add(pelion)
+            }).disposeBy(lifeCycleDisposables)
+    }
+
+    fun updateSettings(context: Context) {
+        awsRepo.updateSetting(context)
+        aliyunRepo.updateSetting(context)
+        pelionRepo.updateSetting(context)
     }
 
     fun start() {
         bindDataSubjects()
         bindStatusSubjects()
         awsRepo.start()
-        aliyunRepo.start()
+        thread {
+            aliyunRepo.start()
+        }
         pelionRepo.start()
     }
 
     fun pause() {
+        lifeCycleDisposables.clear()
         awsRepo.pause()
         aliyunRepo.pause()
         pelionRepo.pause()

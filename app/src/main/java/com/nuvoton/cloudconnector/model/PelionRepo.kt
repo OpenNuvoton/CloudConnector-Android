@@ -1,5 +1,6 @@
 package com.nuvoton.cloudconnector.model
 
+import android.content.Context
 import android.util.Log
 import com.nuvoton.cloudconnector.*
 import io.reactivex.BackpressureStrategy
@@ -14,19 +15,19 @@ import kotlin.concurrent.thread
 
 class PelionRepo : RepositoryCommon() {
     // Nuvoton test
-    private val apiKey = "ak_1MDE1ZTViZDZjNzBjMDI0MjBhMDExNDA1MDAwMDAwMDA015f5da4433c02420a011b0800000000OaUDAhYmVjiD1WjBj6vG0kIamO6FvC6L"
-    var deviceId = "016e6e4416e5000000000001001201f5"
-    private val resource = "3303/0/5700"
+    private var mApiKey = "ak_1MDE1ZTViZDZjNzBjMDI0MjBhMDExNDA1MDAwMDAwMDA015f5da4433c02420a011b0800000000OaUDAhYmVjiD1WjBj6vG0kIamO6FvC6L"
+    var mDeviceId = "016e6e4416e5000000000001001201f5"
+    private var mResource = "3303/0/5700"
 //    val resources = hashMapOf("tension" to "3200/0/5501", "current" to "3200/0/5502", "power" to "3200/0/5503")
 
-    private val requstHostname = "api.us-east-1.mbedcloud.com"
-    private val requestUrl = "https://$requstHostname"
-    private val websocketUrl = "wss://$requstHostname/v2/notification/websocket-connect"
+    private var requstHostname = "api.us-east-1.mbedcloud.com"
+    private var requestUrl = "https://$requstHostname"
+    private var websocketUrl = "wss://$requstHostname/v2/notification/websocket-connect"
     val pelionDataSubject : PublishSubject<RxWebSocketInfo> = PublishSubject.create()
     val pelionRequestSubject : PublishSubject<Response> = PublishSubject.create()
     val pelionToastSubject : PublishSubject<String> = PublishSubject.create()
 
-    private val restApi = RxRestApi(requestUrl, apiKey)
+    private val restApi = RxRestApi(requestUrl, mApiKey)
 
     var isWebSocketConnected = RxVar(false)
 
@@ -52,7 +53,7 @@ class PelionRepo : RepositoryCommon() {
 
 
     fun openWebSocket() {
-        val websocketDisposable = RxWebSocket(websocketUrl, apiKey)
+        val websocketDisposable = RxWebSocket(websocketUrl, mApiKey)
             .notificationChannel.toFlowable(BackpressureStrategy.BUFFER)
             .subscribeOn(Schedulers.io())
             .subscribe({
@@ -91,8 +92,8 @@ class PelionRepo : RepositoryCommon() {
     fun getNotificationChannelStatus() : HashMap<String, Any?> = get("v2/notification/websocket")
 
     fun subscribeToResource(deviceId: String? = null, resource: String? = null) : HashMap<String, Any?> {
-        val id = deviceId ?: this.deviceId
-        val res = resource ?: this.resource
+        val id = deviceId ?: this.mDeviceId
+        val res = resource ?: this.mResource
 
         return put("v2/subscriptions/$id/$res")
     }
@@ -112,17 +113,17 @@ class PelionRepo : RepositoryCommon() {
     // Implement abstract functions
     override fun start() {
 //        startNotifyTimer()
-        val dis = restApi.restSubject.subscribeOn(Schedulers.io())
+
+        restApi.restSubject.subscribeOn(Schedulers.io())
             .subscribe({
                 debug("pelion response = $it")
                 pelionRequestSubject.onNext(it)
             }, {
                 pelionRequestSubject.onError(it)
-            })
-        lifeCycleDisposable.add(dis)
+            }).disposeBy(lifeCycleDisposable)
 
 
-        val webDis = getLatestDeviceList().subscribeOn(Schedulers.io())
+        getLatestDeviceList().subscribeOn(Schedulers.io())
             .map { devices ->
                 devices.forEach { device ->
                     if (device["name"] as? String == "pelion_multiCloud_demo") {
@@ -130,8 +131,8 @@ class PelionRepo : RepositoryCommon() {
                         if (id !is String)
                             throw Exception("id is not string")
 
-                        deviceId = id
-                        debug("deviceId=$deviceId")
+                        mDeviceId = id
+                        debug("mDeviceId=$mDeviceId")
                     }
                 }
                 createNotificationChannel()
@@ -145,16 +146,15 @@ class PelionRepo : RepositoryCommon() {
                 if (it["code"] != 200)
                     throw Exception("GetNotificationChannelStatus resp=${it["code"]}")
                 openWebSocket()
-                subscribeToResource(resource = resource)
-            }.subscribe({
+                subscribeToResource(resource = mResource)
+            }.map {
                 if (it["code"] != 200 && it["code"] != 202)
                     throw Exception("subscribe power failed, resp=${it["code"]}")
+            }.subscribe({
                 notifyRepoIsAlive()
             }, {
                 pelionToastSubject.onError(it)
-            })
-
-        lifeCycleDisposable.add(webDis)
+            }).disposeBy(lifeCycleDisposable)
     }
 
     override fun pause() {
@@ -168,9 +168,31 @@ class PelionRepo : RepositoryCommon() {
     }
 
     override fun getCloudSetting(): List<String> {
-        val splitKey = apiKey.subSequence(0, 8).toString()
+        val splitKey = mApiKey.subSequence(0, 8).toString()
         return listOf("ApiKey:\n$splitKey",
-            "DeviceId:\n$deviceId",
-            "Resource:\n$resource")
+            "DeviceId:\n$mDeviceId",
+            "Resource:\n$mResource")
+    }
+
+    override fun updateSetting(context: Context) {
+        val pelionHostname = context.getPrefString("pref_pelion_host")
+        if (pelionHostname != null) {
+            requstHostname = pelionHostname.toString()
+        }
+
+        val apiKey = context.getPrefString("pref_pelion_api_key")
+        if (apiKey != null) {
+            mApiKey = apiKey.toString()
+        }
+
+        val deviceId = context.getPrefString("pref_pelion_device_id")
+        if (deviceId != null) {
+            mDeviceId = deviceId.toString()
+        }
+
+        val resource = context.getPrefString("pref_pelion_resource")
+        if (resource != null) {
+            mResource = resource.toString()
+        }
     }
 }

@@ -1,5 +1,6 @@
 package com.nuvoton.cloudconnector.view
 
+import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.graphics.Color
 import androidx.appcompat.app.AppCompatActivity
@@ -7,7 +8,6 @@ import android.os.Bundle
 import android.view.*
 import android.widget.Button
 import android.widget.LinearLayout
-import androidx.core.view.marginTop
 import com.afollestad.materialdialogs.MaterialDialog
 import com.afollestad.materialdialogs.list.listItems
 import com.github.mikephil.charting.charts.LineChart
@@ -33,8 +33,11 @@ import com.microsoft.appcenter.crashes.Crashes
 import com.microsoft.appcenter.analytics.Analytics
 import com.microsoft.appcenter.AppCenter
 import com.nuvoton.cloudconnector.debug
+import com.nuvoton.cloudconnector.disposeBy
 import com.nuvoton.cloudconnector.viewmodel.RepoOption
 import io.reactivex.Observable
+import io.reactivex.disposables.CompositeDisposable
+import kotlin.concurrent.thread
 
 class MainActivity : AppCompatActivity() {
     lateinit var mainViewModel: MainViewModel
@@ -48,6 +51,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var pelionDataSet: LineDataSet
     private var timestamp = "0"
     private var zoomRatio = 1f
+    private var trashCan = CompositeDisposable()
+    private var ready = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -55,22 +60,19 @@ class MainActivity : AppCompatActivity() {
 
         connectAppCenter()
 
-        mainViewModel = MainViewModel(applicationContext)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
 
         createView()
         initDataSets()
+    }
 
-        subscribeSubjects(mainViewModel.mvAWSSubject, awsDataSet)
-        subscribeSubjects(mainViewModel.mvPelionSubject, pelionDataSet)
-        subscribeSubjects(mainViewModel.mvAliyunSubject, aliyunDataSet)
-
-        subscribeStatusSubjects(mainViewModel.mvAWSStatusSubject, awsButton, R.drawable.button_red_up)
-        subscribeStatusSubjects(mainViewModel.mvPelionStatusSubject, pelionButton, R.drawable.button_blue_up)
-        subscribeStatusSubjects(mainViewModel.mvAliyunStatusSubject, aliyunButton, R.drawable.button_green_up)
-
-//        startSweepingDatasets()
+    override fun onBackPressed() {
+        if (supportFragmentManager.backStackEntryCount > 0) {
+            supportFragmentManager.popBackStack()
+        } else {
+            super.onBackPressed()
+        }
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
@@ -80,25 +82,48 @@ class MainActivity : AppCompatActivity() {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
-            R.id.show_aws -> openDialog(RepoOption.AWS)
-            R.id.show_pelion -> openDialog(RepoOption.PELION)
-            R.id.show_aliyun -> openDialog(RepoOption.ALIYUN)
+            R.id.settings -> if (ready) startActivity(Intent(this, SettingsActivity::class.java))
         }
         return super.onOptionsItemSelected(item)
     }
 
     override fun onStart() {
         super.onStart()
+        ready = false
+        thread {
+            Thread.sleep(3000)
+            ready = true
+        }
+        mainViewModel = MainViewModel(applicationContext)
+
+        subscribeSubjects(mainViewModel.mvAWSSubject, awsDataSet)
+        subscribeSubjects(mainViewModel.mvPelionSubject, pelionDataSet)
+        subscribeSubjects(mainViewModel.mvAliyunSubject, aliyunDataSet)
+
+        subscribeStatusSubjects(mainViewModel.mvAWSStatusSubject, awsButton, R.drawable.button_red_up)
+        subscribeStatusSubjects(mainViewModel.mvPelionStatusSubject, pelionButton, R.drawable.button_blue_up)
+        subscribeStatusSubjects(mainViewModel.mvAliyunStatusSubject, aliyunButton, R.drawable.button_green_up)
+//        startSweepingDatasets()
+        mainViewModel.updateSettings(applicationContext)
         mainViewModel.start()
+
+//        lineChart?.moveViewToX(0f)
+//        zoomRatio = 1f
     }
 
     override fun onPause() {
         super.onPause()
+        awsDataSet.clear()
+        pelionDataSet.clear()
+        aliyunDataSet.clear()
+
         mainViewModel.pause()
+        trashCan.clear()
     }
 
     override fun onDestroy() {
         super.onDestroy()
+        trashCan.dispose()
         window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         mainViewModel.destroy()
     }
@@ -166,7 +191,7 @@ class MainActivity : AppCompatActivity() {
                 changeButtonStatus(button, it, resUpId)
             }, {
                 it.printStackTrace()
-            })
+            }).disposeBy(trashCan)
     }
 
     private fun changeButtonStatus(button: Button?, isAlive: Boolean, resUpId: Int) {
@@ -209,12 +234,13 @@ class MainActivity : AppCompatActivity() {
                     lineChart?.zoom(0f, 1f, 0f, 0f)
                     lineChart?.zoom(zoomRatio, 1f, 0f, 0f)
                 }
+                lineDataSet.notifyDataSetChanged()
                 lineChart?.data?.notifyDataChanged()
                 lineChart?.notifyDataSetChanged()
                 lineChart?.invalidate()
             }, {
                 it.printStackTrace()
-            })
+            }).disposeBy(trashCan)
     }
 
     private fun connectAppCenter() {
@@ -229,6 +255,8 @@ class MainActivity : AppCompatActivity() {
         constraintLayout {
             id = View.generateViewId()
             background = resources.getDrawable(R.drawable.background, theme)
+
+
 
             val tab = linearLayout {
                 id = View.generateViewId()

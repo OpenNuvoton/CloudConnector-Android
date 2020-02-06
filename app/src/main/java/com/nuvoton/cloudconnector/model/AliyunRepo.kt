@@ -1,20 +1,22 @@
 package com.nuvoton.cloudconnector.model
 
+import android.content.Context
 import com.linkkit.aiotcore.AiotMqttClient
 import com.linkkit.aiotcore.AiotMqttException
 import com.nuvoton.cloudconnector.fromJsonString
+import com.nuvoton.cloudconnector.getPrefString
 import io.reactivex.subjects.PublishSubject
 
 class AliyunRepo : RepositoryCommon() {
     private val mqttClient = AiotMqttClient()
 
-    private val productKey = "a1Ll7sjheeL"
-    private val deviceName = "PfrfuKsWweTxOnuG8wo4"
-    private val deviceSecret = "EBsP2YuU486ybGOXiNcGlrtKQWMQs48H"
-    private val readTopic = "/$productKey/$deviceName/get"
-    private val writeTopic = "/$productKey/$deviceName/data"
+    private var mProductKey = "a1Ll7sjheeL"
+    private var mDeviceName = "PfrfuKsWweTxOnuG8wo4"
+    private var mDeviceSecret = "EBsP2YuU486ybGOXiNcGlrtKQWMQs48H"
+    private var readTopic = "/$mProductKey/$mDeviceName/get"
+    private var writeTopic = "/$mProductKey/$mDeviceName/data"
 
-    private val hostname = "$productKey.iot-as-mqtt.cn-shanghai.aliyuncs.com"
+    private val hostname = "$mProductKey.iot-as-mqtt.cn-shanghai.aliyuncs.com"
     private val port = 1883
     private val qos = 0
 
@@ -24,9 +26,9 @@ class AliyunRepo : RepositoryCommon() {
     override fun start() {
         mqttClient.setHost(hostname)
         mqttClient.setPort(port)
-        mqttClient.setProductKey(productKey)
-        mqttClient.setDeviceName(deviceName)
-        mqttClient.setDeviceSecret(deviceSecret)
+        mqttClient.setProductKey(mProductKey)
+        mqttClient.setDeviceName(mDeviceName)
+        mqttClient.setDeviceSecret(mDeviceSecret)
         try {
             startNotifyTimer()
             mqttClient.connect()
@@ -57,5 +59,22 @@ class AliyunRepo : RepositoryCommon() {
     override fun getCloudSetting(): List<String> {
         return listOf("Host name:\n$hostname",
             "MQTTTopic:\n$readTopic")
+    }
+
+    override fun updateSetting(context: Context) {
+        val productKey = context.getPrefString("pref_aliyun_product_key")
+        if (productKey != null) {
+            mProductKey = productKey.toString()
+        }
+
+        val deviceName = context.getPrefString("pref_aliyun_device_name")
+        if (deviceName != null) {
+            mDeviceName = deviceName.toString()
+        }
+
+        val deviceSecret = context.getPrefString("pref_aliyun_device_secret")
+        if (deviceSecret != null) {
+            mDeviceSecret = deviceSecret.toString()
+        }
     }
 }
