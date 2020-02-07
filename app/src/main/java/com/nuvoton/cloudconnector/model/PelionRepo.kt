@@ -51,7 +51,6 @@ class PelionRepo : RepositoryCommon() {
             }
     }
 
-
     fun openWebSocket() {
         val websocketDisposable = RxWebSocket(websocketUrl, mApiKey)
             .notificationChannel.toFlowable(BackpressureStrategy.BUFFER)
@@ -123,18 +122,21 @@ class PelionRepo : RepositoryCommon() {
             }).disposeBy(lifeCycleDisposable)
 
 
-        getLatestDeviceList().subscribeOn(Schedulers.io())
-            .map { devices ->
-                devices.forEach { device ->
-                    if (device["name"] as? String == "pelion_multiCloud_demo") {
-                        val id = device["id"]
-                        if (id !is String)
-                            throw Exception("id is not string")
-
-                        mDeviceId = id
-                        debug("mDeviceId=$mDeviceId")
-                    }
-                }
+//        getLatestDeviceList().subscribeOn(Schedulers.io())
+//            .map { devices ->
+//                devices.forEach { device ->
+//                    if (device["name"] as? String == "pelion_multiCloud_demo") {
+//                        val id = device["id"]
+//                        if (id !is String)
+//                            throw Exception("id is not string")
+//
+//                        mDeviceId = id
+//                        debug("mDeviceId=$mDeviceId")
+//                    }
+//                }
+//            }
+        Observable.just("createNotificationChannel").subscribeOn(Schedulers.io())
+            .map {
                 createNotificationChannel()
             }
             .map {
