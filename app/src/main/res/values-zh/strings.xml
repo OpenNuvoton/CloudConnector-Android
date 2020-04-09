@@ -7,4 +7,6 @@
     <string name="pref_title_aliyun_device_name">阿里雲 Device Name</string>
     <string name="pref_title_aliyun_device_secret">阿里雲 Device Secret</string>
     <string name="settings">設定</string>
+    <string name="pref_title_aliyun_topic_get">阿里雲訂閱 Topic</string>
+    <string name="pref_title_aliyun_topic_data">阿里雲推送 Topic</string>
 </resources>

@@ -180,6 +180,8 @@ class PelionRepo : RepositoryCommon() {
         val pelionHostname = context.getPrefString("pref_pelion_host")
         if (pelionHostname != null) {
             requstHostname = pelionHostname.toString()
+            requestUrl = "https://$requstHostname"
+            websocketUrl = "wss://$requstHostname/v2/notification/websocket-connect"
         }
 
         val apiKey = context.getPrefString("pref_pelion_api_key")

@@ -70,22 +70,36 @@
         <EditTextPreference
                 app:key="pref_aliyun_product_key"
                 app:title="@string/pref_title_aliyun_product_key"
-                app:defaultValue="a1Ll7sjheeL"
+                app:defaultValue="a17BdYlXid9"
                 app:useSimpleSummaryProvider="true"
             />
 
         <EditTextPreference
                 app:key="pref_aliyun_device_name"
                 app:title="@string/pref_title_aliyun_device_name"
-                app:defaultValue="PfrfuKsWweTxOnuG8wo4"
+                app:defaultValue="App_server"
                 app:useSimpleSummaryProvider="true"
             />
 
         <EditTextPreference
                 app:key="pref_aliyun_device_secret"
                 app:title="@string/pref_title_aliyun_device_secret"
-                app:defaultValue="EBsP2YuU486ybGOXiNcGlrtKQWMQs48H"
+                app:defaultValue="ND40Gb8KJDbzIhkpZ8kMN3h83jWfr1bU"
                 app:useSimpleSummaryProvider="true"
+            />
+
+        <EditTextPreference
+            app:key="pref_aliyun_topic_get"
+            app:title="@string/pref_title_aliyun_topic_get"
+            app:defaultValue="user/get"
+            app:useSimpleSummaryProvider="true"
+            />
+
+        <EditTextPreference
+            app:key="pref_aliyun_topic_data"
+            app:title="@string/pref_title_aliyun_topic_data"
+            app:defaultValue="user/data"
+            app:useSimpleSummaryProvider="true"
             />
 
     </PreferenceCategory>
