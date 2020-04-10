@@ -124,4 +124,7 @@ dependencies {
     implementation 'com.afollestad.material-dialogs:core:3.1.0'
 
     implementation 'com.linkkit.aiotcore:aiotcore:0.0.2'
+
+    implementation 'org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.1.0'
+    implementation 'org.eclipse.paho:org.eclipse.paho.android.service:1.1.1'
 }
