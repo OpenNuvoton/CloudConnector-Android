@@ -30,7 +30,7 @@ public class AliMqttHandler(context: Context, val aliMqttOption: AiotMqttOption,
         })
     }
 
-    public val connectRx = Observable.create<String> { observer ->
+    public val connectRx = Observable.create<Boolean> { observer ->
         try {
             val mqttOption = MqttConnectOptions();
             mqttOption.userName = aliMqttOption.username
@@ -38,11 +38,11 @@ public class AliMqttHandler(context: Context, val aliMqttOption: AiotMqttOption,
 
             mqttAndroidClient.connect(mqttOption, null, object : IMqttActionListener {
                 override fun onSuccess(asyncActionToken: IMqttToken?) {
-                    observer.onNext("Mqtt Connect Success")
+                    observer.onNext(true)
                 }
 
                 override fun onFailure(asyncActionToken: IMqttToken?, exception: Throwable?) {
-                    observer.onNext("Mqtt Connect Failed")
+                    observer.onNext(false)
                 }
             })
         } catch (e: Exception) {
@@ -50,8 +50,8 @@ public class AliMqttHandler(context: Context, val aliMqttOption: AiotMqttOption,
         }
     }
 
-    public fun publishRx(message: String, qos: Int = 0, topic: String) : Observable<String> {
-        return Observable.create<String> { observer ->
+    public fun publishRx(message: String, qos: Int = 0, topic: String) : Observable<Boolean> {
+        return Observable.create<Boolean> { observer ->
             try {
                 if (!mqttAndroidClient.isConnected) {
                     mqttAndroidClient.connect()
@@ -62,11 +62,11 @@ public class AliMqttHandler(context: Context, val aliMqttOption: AiotMqttOption,
                 mqttMessage.qos = qos
                 mqttAndroidClient.publish(topic, mqttMessage, null, object : IMqttActionListener {
                     override fun onSuccess(asyncActionToken: IMqttToken?) {
-                        observer.onNext("Message Sent")
+                        observer.onNext(true)
                     }
 
                     override fun onFailure(asyncActionToken: IMqttToken?, exception: Throwable?) {
-                        observer.onNext("Message not Sent")
+                        observer.onNext(true)
                     }
 
                 })
@@ -76,16 +76,16 @@ public class AliMqttHandler(context: Context, val aliMqttOption: AiotMqttOption,
         }
     }
 
-    public fun subscribeRx(topic: String, qos: Int = 0) : Observable<String> {
-        return Observable.create<String> { observer ->
+    public fun subscribeRx(topic: String, qos: Int = 0) : Observable<Boolean> {
+        return Observable.create<Boolean> { observer ->
             try {
                 mqttAndroidClient.subscribe(topic, qos, null, object : IMqttActionListener {
                     override fun onSuccess(asyncActionToken: IMqttToken?) {
-                        observer.onNext("Subscribe success")
+                        observer.onNext(true)
                     }
 
                     override fun onFailure(asyncActionToken: IMqttToken?, exception: Throwable?) {
-                        observer.onNext("Subscribe failed")
+                        observer.onNext(false)
                     }
 
                 })
@@ -93,6 +93,10 @@ public class AliMqttHandler(context: Context, val aliMqttOption: AiotMqttOption,
                 observer.onError(e)
             }
         }
+    }
+
+    public fun disconnect() {
+        mqttAndroidClient.disconnect()
     }
 }
 
