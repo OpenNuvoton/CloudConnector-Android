@@ -15,20 +15,17 @@
         <EditTextPreference
                 app:key="pref_aws_cognito_pool_id"
                 app:title="AWS Cognito Identity Pool ID"
-                app:defaultValue="us-east-1:9e41d4ca-03a7-4af0-a6ec-0bc5b5814781"
                 app:useSimpleSummaryProvider="true"
             />
 
         <EditTextPreference
                 app:key="pref_aws_iot_endpoint"
                 app:title="AWS IoT Endpoint"
-                app:defaultValue="a1fljoeglhtf61-ats.iot.us-east-1.amazonaws.com"
                 app:useSimpleSummaryProvider="true"
             />
         <EditTextPreference
                 app:key="pref_aws_iot_thing_name"
                 app:title="AWS IoT Thing Name"
-                app:defaultValue="Nuvoton-RTOS-D002"
                 app:useSimpleSummaryProvider="true"
             />
     </PreferenceCategory>
@@ -39,27 +36,23 @@
         <EditTextPreference
                 app:key="pref_pelion_host"
                 app:title="Pelion Host Name"
-                app:defaultValue="api.us-east-1.mbedcloud.com"
                 app:useSimpleSummaryProvider="true"
             />
 
         <EditTextPreference
                 app:key="pref_pelion_api_key"
                 app:title="Pelion API Key"
-                                                app:defaultValue="ak_1MDE1ZTViZDZjNzBjMDI0MjBhMDExNDA1MDAwMDAwMDA015f5da4433c02420a011b0800000000OaUDAhYmVjiD1WjBj6vG0kIamO6FvC6L"
                 app:useSimpleSummaryProvider="true"
             />
         <EditTextPreference
                 app:key="pref_pelion_device_id"
                 app:title="Pelion Device ID"
-                app:defaultValue="016e6e4416e5000000000001001201f5"
                 app:useSimpleSummaryProvider="true"
             />
 
         <EditTextPreference
                 app:key="pref_pelion_resource"
                 app:title="Pelion Device Resourse"
-                app:defaultValue="3303/0/5700"
                 app:useSimpleSummaryProvider="true"
             />
     </PreferenceCategory>
@@ -70,21 +63,18 @@
         <EditTextPreference
                 app:key="pref_aliyun_product_key"
                 app:title="@string/pref_title_aliyun_product_key"
-                app:defaultValue="a17BdYlXid9"
                 app:useSimpleSummaryProvider="true"
             />
 
         <EditTextPreference
                 app:key="pref_aliyun_device_name"
                 app:title="@string/pref_title_aliyun_device_name"
-                app:defaultValue="App_server"
                 app:useSimpleSummaryProvider="true"
             />
 
         <EditTextPreference
                 app:key="pref_aliyun_device_secret"
                 app:title="@string/pref_title_aliyun_device_secret"
-                app:defaultValue="ND40Gb8KJDbzIhkpZ8kMN3h83jWfr1bU"
                 app:useSimpleSummaryProvider="true"
             />
 
