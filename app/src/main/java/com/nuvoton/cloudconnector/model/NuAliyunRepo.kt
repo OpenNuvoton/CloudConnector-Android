@@ -11,53 +11,56 @@ import io.reactivex.schedulers.Schedulers
 import io.reactivex.subjects.PublishSubject
 
 class NuAliyunRepo(val context: Context) : RepositoryCommon() {
-    private var mProductKey = "a1Ll7sjheeL"
-    private var mDeviceName = "PfrfuKsWweTxOnuG8wo4"
-    private var mDeviceSecret = "EBsP2YuU486ybGOXiNcGlrtKQWMQs48H"
+    private var mProductKey = ""
+    private var mDeviceName = ""
+    private var mDeviceSecret = ""
     private var mReadTopic = "/$mProductKey/$mDeviceName/get"
     private var mWriteTopic = "/$mProductKey/$mDeviceName/data"
 
     private var mHostname = "$mProductKey.iot-as-mqtt.cn-shanghai.aliyuncs.com"
     private val port = 1883
     private val qos = 0
-    private lateinit var mqttClient : AliMqttHandler
+    private var mqttClient : AliMqttHandler? = null
 
     val aliyunDataSubject: PublishSubject<HashMap<String, Any?>> = PublishSubject.create()
 
     // Implement abstract functions
     override fun start() {
+        if (mProductKey == "" || mDeviceName == "" || mDeviceSecret == "") return
         val mqttOption = AiotMqttOption().getMqttOption(mProductKey, mDeviceName, mDeviceSecret);
 
         mqttClient = AliMqttHandler(context, mqttOption, mHostname);
         startNotifyTimer()
-        val dis = mqttClient.connectRx.subscribeOn(Schedulers.io())
-            .flatMap { connected ->
-                if (connected) {
-                    mqttClient.subscribeRx(mReadTopic)
-                } else {
-                    throw Exception("")
-                }
-            }.flatMap { subscribed ->
-                if (subscribed) {
-                    mqttClient.messageRx
-                } else {
-                    throw Exception("")
-                }
-            }.subscribe({ mqttMessage ->
-                notifyRepoIsAlive()
-                val map: HashMap<String, Any?> = gson.fromJsonString(mqttMessage.message.toString())
-                map["timestamp"] = getTimeSecond()
-                aliyunDataSubject.onNext(map)
-            }, { error ->
-                aliyunDataSubject.onError(error)
-            })
-
-        lifeCycleDisposable.add(dis)
+        if (mqttClient != null) {
+            val dis = mqttClient!!.connectRx.subscribeOn(Schedulers.io())
+                .flatMap { connected ->
+                    if (connected) {
+                        mqttClient!!.subscribeRx(mReadTopic)
+                    } else {
+                        throw Exception("")
+                    }
+                }.flatMap { subscribed ->
+                    if (subscribed) {
+                        mqttClient!!.messageRx
+                    } else {
+                        throw Exception("")
+                    }
+                }.subscribe({ mqttMessage ->
+                    notifyRepoIsAlive()
+                    val map: HashMap<String, Any?> =
+                        gson.fromJsonString(mqttMessage.message.toString())
+                    map["timestamp"] = getTimeSecond()
+                    aliyunDataSubject.onNext(map)
+                }, { error ->
+                    aliyunDataSubject.onError(error)
+                })
+            lifeCycleDisposable.add(dis)
+        }
     }
 
     override fun pause() {
         stopTimer()
-        mqttClient.disconnect()
+        if (mqttClient != null) mqttClient!!.disconnect()
         lifeCycleDisposable.clear()
     }
 

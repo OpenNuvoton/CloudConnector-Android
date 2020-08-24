@@ -18,10 +18,10 @@ import kotlin.concurrent.thread
 
 class AWSRepo(private var applicationContext: Context) : RepositoryCommon() {
     private var mAWSIoTdataClient: AWSIotDataClient? = null
-    private var mCognitoIdentityPoolId = "us-east-1:9e41d4ca-03a7-4af0-a6ec-0bc5b5814781"
+    private var mCognitoIdentityPoolId = ""
     private var mCredentialProvider: CognitoCachingCredentialsProvider? = null
-    private var mIoTEndpoint = "a1fljoeglhtf61-ats.iot.us-east-1.amazonaws.com"
-    private var mIoTThingName = "Nuvoton-RTOS-D002"
+    private var mIoTEndpoint = ""
+    private var mIoTThingName = ""
     private var mRegion = Regions.US_EAST_1
     val awsDataSubject : PublishSubject<Map<String, Any?>> = PublishSubject.create()
     private val iotRequestSubject : PublishSubject<String> = PublishSubject.create()
@@ -90,6 +90,7 @@ class AWSRepo(private var applicationContext: Context) : RepositoryCommon() {
 
     // Implement abstract functions
     override fun start() {
+        if (mCognitoIdentityPoolId == "" || mIoTEndpoint == "" || mIoTThingName == "") return
         initAWSSetting()
         startNotifyTimer()
         polling = true

@@ -10,9 +10,9 @@ import io.reactivex.subjects.PublishSubject
 class AliyunRepo : RepositoryCommon() {
     private val mqttClient = AiotMqttClient()
 
-    private var mProductKey = "a1Ll7sjheeL"
-    private var mDeviceName = "PfrfuKsWweTxOnuG8wo4"
-    private var mDeviceSecret = "EBsP2YuU486ybGOXiNcGlrtKQWMQs48H"
+    private var mProductKey = ""
+    private var mDeviceName = ""
+    private var mDeviceSecret = ""
     private var mReadTopic = "/$mProductKey/$mDeviceName/get"
     private var mWriteTopic = "/$mProductKey/$mDeviceName/data"
 

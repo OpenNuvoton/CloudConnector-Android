@@ -6,6 +6,7 @@ import android.util.Log
 import com.nuvoton.cloudconnector.*
 import com.nuvoton.cloudconnector.model.AWSRepo
 import com.nuvoton.cloudconnector.model.AliyunRepo
+import com.nuvoton.cloudconnector.model.NuAliyunRepo
 import com.nuvoton.cloudconnector.model.PelionRepo
 import com.nuvoton.cloudconnector.viewmodel.RepoOption.*
 import io.reactivex.disposables.CompositeDisposable
@@ -24,7 +25,7 @@ class MainViewModel(context: Context) {
     val mvPelionStatusSubject : PublishSubject<Boolean> = PublishSubject.create()
 
     val awsRepo = AWSRepo(context)
-    val aliyunRepo = AliyunRepo()
+    val aliyunRepo = NuAliyunRepo(context)
     val pelionRepo = PelionRepo()
 
     private val lifeCycleDisposables = CompositeDisposable()

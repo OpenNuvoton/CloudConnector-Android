@@ -15,8 +15,8 @@ import kotlin.concurrent.thread
 
 class PelionRepo : RepositoryCommon() {
     // Nuvoton test
-    private var mApiKey = "ak_1MDE1ZTViZDZjNzBjMDI0MjBhMDExNDA1MDAwMDAwMDA015f5da4433c02420a011b0800000000OaUDAhYmVjiD1WjBj6vG0kIamO6FvC6L"
-    var mDeviceId = "016e6e4416e5000000000001001201f5"
+    private var mApiKey = ""
+    var mDeviceId = ""
     private var mResource = "3303/0/5700"
 //    val resources = hashMapOf("tension" to "3200/0/5501", "current" to "3200/0/5502", "power" to "3200/0/5503")
 
@@ -111,6 +111,7 @@ class PelionRepo : RepositoryCommon() {
 
     // Implement abstract functions
     override fun start() {
+        if (mApiKey == "" || mDeviceId == "") return
 //        startNotifyTimer()
 
         restApi.restSubject.subscribeOn(Schedulers.io())
