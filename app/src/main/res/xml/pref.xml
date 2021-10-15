@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.preference.PreferenceScreen
+<androidx.preference.PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:app="http://schemas.android.com/apk/res-auto">
     <PreferenceCategory
         app:title="@string/pref_title_aws"
@@ -16,17 +16,22 @@
                 app:key="pref_aws_cognito_pool_id"
                 app:title="AWS Cognito Identity Pool ID"
                 app:useSimpleSummaryProvider="true"
+                app:defaultValue="us-east-1:9e41d4ca-03a7-4af0-a6ec-0bc5b5814781"
+
             />
+<!--        app:defaultValue="us-east-1:9e41d4ca-03a7-4af0-a6ec-0bc5b581478"-->
 
         <EditTextPreference
                 app:key="pref_aws_iot_endpoint"
                 app:title="AWS IoT Endpoint"
                 app:useSimpleSummaryProvider="true"
+                app:defaultValue="a1fljoeglhtf61-ats.iot.us-east-1.amazonaws.com"
             />
         <EditTextPreference
                 app:key="pref_aws_iot_thing_name"
                 app:title="AWS IoT Thing Name"
                 app:useSimpleSummaryProvider="true"
+                app:defaultValue="Nuvoton-RTOS-D002"
             />
     </PreferenceCategory>
 
@@ -37,45 +42,64 @@
                 app:key="pref_pelion_host"
                 app:title="Pelion Host Name"
                 app:useSimpleSummaryProvider="true"
+                app:defaultValue="api.us-east-1.mbedcloud.com"
             />
 
         <EditTextPreference
                 app:key="pref_pelion_api_key"
                 app:title="Pelion API Key"
                 app:useSimpleSummaryProvider="true"
+                app:defaultValue="ak_2MDE3NzEzM2JiMzVjN2VlMDkzZTNkNzRjMDAwMDAwMDA01773747abf67ee093e3d74c00000000zKPZar3QTFeVv3ELp9HIK6kJ3EdHJ0k2"
             />
         <EditTextPreference
                 app:key="pref_pelion_device_id"
                 app:title="Pelion Device ID"
                 app:useSimpleSummaryProvider="true"
+                app:defaultValue="01772802469100000000000100181dbd"
             />
 
         <EditTextPreference
                 app:key="pref_pelion_resource"
                 app:title="Pelion Device Resourse"
                 app:useSimpleSummaryProvider="true"
+                app:defaultValue="/3200/0/5501"
             />
     </PreferenceCategory>
 
     <PreferenceCategory
         app:title="@string/pref_title_aliyun"
         >
+
+        <ListPreference
+                app:key="pref_aliyun_region"
+                app:title="Aliyun Group"
+                app:entries="@array/Ali_Group_item"
+                app:defaultValue="HQ_APP1"
+                app:entryValues="@array/Ali_Group_item"
+                app:summary="%s"
+
+
+                />
+
         <EditTextPreference
                 app:key="pref_aliyun_product_key"
                 app:title="@string/pref_title_aliyun_product_key"
                 app:useSimpleSummaryProvider="true"
+                app:defaultValue="a1Ll7sjheeL"
             />
 
         <EditTextPreference
                 app:key="pref_aliyun_device_name"
                 app:title="@string/pref_title_aliyun_device_name"
                 app:useSimpleSummaryProvider="true"
+                app:defaultValue="nsUqaKB3YTWZWbYpqxKP"
             />
 
         <EditTextPreference
                 app:key="pref_aliyun_device_secret"
                 app:title="@string/pref_title_aliyun_device_secret"
                 app:useSimpleSummaryProvider="true"
+                app:defaultValue="n2W2TYxBoJE7qHoaRl42KWzCZQE7lvFO"
             />
 
         <EditTextPreference

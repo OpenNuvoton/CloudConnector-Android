@@ -2,42 +2,50 @@ package com.nuvoton.cloudconnector.view
 
 import android.content.Intent
 import android.content.pm.ActivityInfo
+import android.content.pm.PackageInfo
+import android.content.pm.PackageManager
 import android.graphics.Color
-import androidx.appcompat.app.AppCompatActivity
+import android.opengl.Visibility
 import android.os.Bundle
+import android.util.Log
 import android.view.*
 import android.widget.Button
 import android.widget.LinearLayout
+import android.widget.RelativeLayout
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.isVisible
 import com.afollestad.materialdialogs.MaterialDialog
 import com.afollestad.materialdialogs.list.listItems
 import com.github.mikephil.charting.charts.LineChart
 import com.github.mikephil.charting.components.Description
+import com.github.mikephil.charting.components.XAxis
+import com.github.mikephil.charting.components.XAxis.XAxisPosition
 import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData
 import com.github.mikephil.charting.data.LineDataSet
+import com.jakewharton.rxbinding3.view.touches
+import com.microsoft.appcenter.AppCenter
+import com.microsoft.appcenter.analytics.Analytics
+import com.microsoft.appcenter.crashes.Crashes
 import com.nuvoton.cloudconnector.R
+import com.nuvoton.cloudconnector.debug
+import com.nuvoton.cloudconnector.disposeBy
 import com.nuvoton.cloudconnector.lineChart
 import com.nuvoton.cloudconnector.viewmodel.MainViewModel
+import com.nuvoton.cloudconnector.viewmodel.RepoOption
 import com.uber.autodispose.AutoDispose
 import com.uber.autodispose.android.lifecycle.AndroidLifecycleScopeProvider
+import io.reactivex.Observable
 import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.schedulers.Schedulers
+import io.reactivex.subjects.PublishSubject
 import org.jetbrains.anko.*
 import org.jetbrains.anko.constraint.layout.constraintLayout
 import org.jetbrains.anko.sdk27.coroutines.onTouch
-
-import com.jakewharton.rxbinding3.view.touches
-import io.reactivex.subjects.PublishSubject
 import java.util.concurrent.TimeUnit
-import com.microsoft.appcenter.crashes.Crashes
-import com.microsoft.appcenter.analytics.Analytics
-import com.microsoft.appcenter.AppCenter
-import com.nuvoton.cloudconnector.debug
-import com.nuvoton.cloudconnector.disposeBy
-import com.nuvoton.cloudconnector.viewmodel.RepoOption
-import io.reactivex.Observable
-import io.reactivex.disposables.CompositeDisposable
 import kotlin.concurrent.thread
+
 
 class MainActivity : AppCompatActivity() {
     lateinit var mainViewModel: MainViewModel
@@ -45,7 +53,7 @@ class MainActivity : AppCompatActivity() {
     private var pelionButton: Button? = null
     private var aliyunButton: Button? = null
     private var test = 0
-    private var lineChart: LineChart? = null
+    private var lineChart: LineChart? = null //畫畫
     private lateinit var awsDataSet: LineDataSet
     private lateinit var aliyunDataSet: LineDataSet
     private lateinit var pelionDataSet: LineDataSet
@@ -53,15 +61,24 @@ class MainActivity : AppCompatActivity() {
     private var zoomRatio = 1f
     private var trashCan = CompositeDisposable()
     private var ready = false
+    private var isAllMode = true
+    private var version = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        connectAppCenter()
+        connectAppCenter() //更新
 
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+
+        try {
+            val pInfo: PackageInfo = this.getPackageManager().getPackageInfo(this.getPackageName(), 0)
+            version = "version: " + pInfo.versionName
+        } catch (e: PackageManager.NameNotFoundException) {
+            e.printStackTrace()
+        }
 
         createView()
         initDataSets()
@@ -80,6 +97,7 @@ class MainActivity : AppCompatActivity() {
         return true
     }
 
+    //點擊右上角ＢＵＴＴＯＢ
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
             R.id.settings -> if (ready) startActivity(Intent(this, SettingsActivity::class.java))
@@ -96,13 +114,22 @@ class MainActivity : AppCompatActivity() {
         }
         mainViewModel = MainViewModel(applicationContext)
 
-        subscribeSubjects(mainViewModel.mvAWSSubject, awsDataSet)
-        subscribeSubjects(mainViewModel.mvPelionSubject, pelionDataSet)
-        subscribeSubjects(mainViewModel.mvAliyunSubject, aliyunDataSet)
+        this.subscribeSubjects(mainViewModel.mvAWSSubject, awsDataSet)  //註冊ＡＷＳ收到訊息時 執行送出
+        this.subscribeSubjects(mainViewModel.mvPelionSubject, pelionDataSet)
+        this.subscribeSubjects(mainViewModel.mvAliyunSubject, aliyunDataSet)
 
-        subscribeStatusSubjects(mainViewModel.mvAWSStatusSubject, awsButton, R.drawable.button_red_up)
-        subscribeStatusSubjects(mainViewModel.mvPelionStatusSubject, pelionButton, R.drawable.button_blue_up)
-        subscribeStatusSubjects(mainViewModel.mvAliyunStatusSubject, aliyunButton, R.drawable.button_green_up)
+        subscribeStatusSubjects(
+            mainViewModel.mvAWSStatusSubject,
+            awsButton,R.drawable.button_red_up
+        )
+        subscribeStatusSubjects(
+            mainViewModel.mvPelionStatusSubject,
+            pelionButton,R.drawable.button_blue_up
+        )
+        subscribeStatusSubjects(
+            mainViewModel.mvAliyunStatusSubject,
+            aliyunButton,R.drawable.button_green_up
+        )
 //        startSweepingDatasets()
         mainViewModel.updateSettings(applicationContext)
         mainViewModel.start()
@@ -113,10 +140,9 @@ class MainActivity : AppCompatActivity() {
 
     override fun onPause() {
         super.onPause()
-        awsDataSet.clear()
-        pelionDataSet.clear()
-        aliyunDataSet.clear()
-
+//        awsDataSet.clear()
+//        pelionDataSet.clear()
+//        aliyunDataSet.clear()
         mainViewModel.pause()
         trashCan.clear()
     }
@@ -159,16 +185,17 @@ class MainActivity : AppCompatActivity() {
             })
     }
 
-    private fun switchRepo(dataSet: LineDataSet) {
-        if (lineChart?.data?.contains(dataSet) == true) {
-            lineChart?.data?.removeDataSet(dataSet)
-        } else {
-            lineChart?.data?.addDataSet(dataSet)
-        }
-        lineChart?.data?.notifyDataChanged()
-        lineChart?.notifyDataSetChanged()
-        lineChart?.invalidate()
-    }
+    //切換
+//    private fun switchRepo(dataSet: LineDataSet) {
+//        if (lineChart?.data?.contains(dataSet) == true) {
+//            lineChart?.data?.removeDataSet(dataSet)
+//        } else {
+//            lineChart?.data?.addDataSet(dataSet)
+//        }
+//        lineChart?.data?.notifyDataChanged()
+//        lineChart?.notifyDataSetChanged()
+//        lineChart?.invalidate()
+//    }
 
     fun testUpdateChart(value: Float) {
         if (lineChart != null) {
@@ -183,7 +210,11 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun subscribeStatusSubjects(subject: PublishSubject<Boolean>, button: Button?, resUpId: Int) {
+    private fun subscribeStatusSubjects(
+        subject: PublishSubject<Boolean>,
+        button: Button?,
+        resUpId: Int
+    ) {
         subject.subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .`as`(AutoDispose.autoDisposable(AndroidLifecycleScopeProvider.from(this)))
@@ -207,33 +238,51 @@ class MainActivity : AppCompatActivity() {
         awsDataSet = LineDataSet(arrayListOf<Entry>(), "AWS")
         awsDataSet.color = Color.RED
         awsDataSet.setCircleColor(Color.RED)
-        switchRepo(awsDataSet)
+        awsDataSet.lineWidth = 3f
+//        switchRepo(awsDataSet)
+        lineChart?.data?.addDataSet(awsDataSet)
+
         pelionDataSet = LineDataSet(arrayListOf<Entry>(), "Pelion")
         pelionDataSet.color = Color.BLUE
         pelionDataSet.setCircleColor(Color.BLUE)
-        switchRepo(pelionDataSet)
+        pelionDataSet.lineWidth = 3f
+//        switchRepo(pelionDataSet)
+        lineChart?.data?.addDataSet(pelionDataSet)
+
         aliyunDataSet = LineDataSet(arrayListOf<Entry>(), "ALiYun")
         aliyunDataSet.color = Color.GREEN
         aliyunDataSet.setCircleColor(Color.GREEN)
-        switchRepo(aliyunDataSet)
+        aliyunDataSet.lineWidth = 3f
+//        switchRepo(aliyunDataSet)
+        lineChart?.data?.addDataSet(aliyunDataSet)
     }
-    private fun subscribeSubjects(subject: PublishSubject<Map<String, Any?>>, lineDataSet: LineDataSet) {
+
+    private fun subscribeSubjects(subject: PublishSubject<Map<String, Any?>>,lineDataSet: LineDataSet) {
         subject.subscribeOn(Schedulers.io())
             .map {
                 val value = it["temperature"]?.toString()
                 timestamp = it["timestamp"]?.toString() ?: "0"
                 if (value != null) {
-                    lineDataSet.addEntry(Entry(timestamp.toFloat(), value.toFloat()))
+
+//                    lineDataSet.addEntry(Entry(timestamp.toFloat(), value.toFloat()))
+//                    lineDataSet.addEntry(Entry(lineDataSet.entryCount.toFloat()+1, value.toFloat()))
+                    this.addEntry(lineDataSet, value.toFloat())
+                    Log.i(
+                        "A",
+                        "lineDataSet.entryCount:" + lineDataSet.entryCount + "   timestamp.toFloat():" + timestamp.toFloat()
+                    )
                 }
             }.observeOn(AndroidSchedulers.mainThread())
             .`as`(AutoDispose.autoDisposable(AndroidLifecycleScopeProvider.from(this)))
             .subscribe({
-                if (lineDataSet.entryCount >= 60) {
-                    zoomRatio = lineDataSet.entryCount.toFloat() / 60.toFloat()
-                    lineChart?.moveViewToX(lineDataSet.entryCount.toFloat() - 1)
-                    lineChart?.zoom(0f, 1f, 0f, 0f)
-                    lineChart?.zoom(zoomRatio, 1f, 0f, 0f)
-                }
+                Log.i("B", "lineDataSet.entryCount:" + lineDataSet.entryCount)
+//                if (lineDataSet.entryCount >= 60) {
+//                    zoomRatio = lineDataSet.entryCount.toFloat() / 60.toFloat()
+//                    lineChart?.moveViewToX(lineDataSet.entryCount.toFloat() - 1)
+//                    lineChart?.zoom(0f, 1f, 0f, 0f)
+//                    lineChart?.zoom(zoomRatio, 1f, 0f, 0f)
+//                }
+
                 lineDataSet.notifyDataSetChanged()
                 lineChart?.data?.notifyDataChanged()
                 lineChart?.notifyDataSetChanged()
@@ -243,6 +292,7 @@ class MainActivity : AppCompatActivity() {
             }).disposeBy(trashCan)
     }
 
+    //檢查有無更新
     private fun connectAppCenter() {
         AppCenter.start(
             application, "a73adaa7-a2d1-4c01-a202-8cbb90a7f241",
@@ -262,6 +312,36 @@ class MainActivity : AppCompatActivity() {
                 id = View.generateViewId()
                 orientation = LinearLayout.HORIZONTAL
 
+                //TODO 按鈕事件
+                button {
+                    id = View.generateViewId()
+                    setBackgroundResource(R.drawable.button_gray_up)
+                    textSize = 15f
+                    setPadding(0, 0, 0, 10)
+                    val text = resources.getString(R.string.toggle_cloud_button, "ALL")
+                    setText(text)
+                    touches { event ->
+                        when (event.action) {
+                            MotionEvent.ACTION_DOWN -> {
+                                Log.i("button", "ALL ACTION_DOWN")
+                                setBackgroundResource(R.drawable.button_gray_up_1)
+                                switchChart("ALL")
+                            }
+                            MotionEvent.ACTION_UP -> {
+                                Log.i("button", "ALL ACTION_UP")
+                                setBackgroundResource(R.drawable.button_gray_up)
+                            }
+                        }
+                        false
+                    }.debounce(2, TimeUnit.SECONDS)
+                        .`as`(AutoDispose.autoDisposable(AndroidLifecycleScopeProvider.from(this@MainActivity)))
+                        .subscribe()
+                }.lparams(width = 0, height = matchParent) {
+                    weight = 1f
+                    margin = 8
+                }
+
+                //TODO 按鈕事件
                 button {
                     this@MainActivity.awsButton = this
                     id = View.generateViewId()
@@ -275,10 +355,12 @@ class MainActivity : AppCompatActivity() {
                         when (event.action) {
                             MotionEvent.ACTION_DOWN -> {
                                 setBackgroundResource(R.drawable.button_red_down)
-                                this@MainActivity.switchRepo(awsDataSet)
+//                                this@MainActivity.switchRepo(awsDataSet)
+                                switchChart("AWS")
                             }
                             MotionEvent.ACTION_UP -> {
                                 setBackgroundResource(R.drawable.button_red_up)
+
                             }
                         }
                         false
@@ -292,6 +374,7 @@ class MainActivity : AppCompatActivity() {
 
                 button {
                     this@MainActivity.pelionButton = this
+//                    pelionButton!!.visibility = View.GONE
                     id = View.generateViewId()
                     setBackgroundResource(R.drawable.button_gray_up_1)
                     textColor = Color.WHITE
@@ -303,7 +386,8 @@ class MainActivity : AppCompatActivity() {
                         when (event.action) {
                             MotionEvent.ACTION_DOWN -> {
                                 setBackgroundResource(R.drawable.button_blue_down)
-                                this@MainActivity.switchRepo(pelionDataSet)
+//                                this@MainActivity.switchRepo(pelionDataSet)
+                                switchChart("Pelion")
                             }
                             MotionEvent.ACTION_UP -> {
                                 setBackgroundResource(R.drawable.button_blue_up)
@@ -328,7 +412,8 @@ class MainActivity : AppCompatActivity() {
                         when (event.action) {
                             MotionEvent.ACTION_DOWN -> {
                                 setBackgroundResource(R.drawable.button_green_down)
-                                this@MainActivity.switchRepo(aliyunDataSet)
+                                switchChart("ALiYun")
+//                                this@MainActivity.switchRepo(aliyunDataSet)
                             }
                             MotionEvent.ACTION_UP -> {
                                 setBackgroundResource(R.drawable.button_green_up)
@@ -355,12 +440,14 @@ class MainActivity : AppCompatActivity() {
                 endToEnd = rootView.id
             }
 
+
+
             lineChart = lineChart {
                 id = View.generateViewId()
                 backgroundColor = Color.TRANSPARENT
                 data = LineData()
                 val des = Description()
-                des.text = "\u2103"
+                des.text = version +"         " + "\u2103"
                 des.textSize = 15f
                 description = des
             }.lparams(width = matchParent, height = 0) {
@@ -369,6 +456,121 @@ class MainActivity : AppCompatActivity() {
                 startToStart = rootView.id
                 endToEnd = rootView.id
             }
+
+            // x坐标轴
+            // x坐标轴
+            val xl: XAxis = lineChart!!.getXAxis()
+            xl.textColor = Color.WHITE
+
+            //设置为true，则绘制网格线
+            xl.setDrawGridLines(true)
+
+            xl.setAvoidFirstLastClipping(true)
+            xl.setSpaceMax(1.0f);
+            // 如果false，那么x坐标轴将不可见
+            xl.isEnabled = true
+            // 将X坐标轴放置在底部，默认是在顶部。
+            xl.position = XAxisPosition.BOTTOM
         }
+    }
+
+    // 添加进去一个坐标点
+    private fun addEntry(lds: LineDataSet, value: Float) {
+
+        val data: LineData = lineChart!!.getData()
+
+        // 先添加一个x坐标轴的值
+        // 因为是从0开始，data.getXValCount()每次返回的总是全部x坐标轴上总数量，所以不必多此一举的加1
+//        data.addXValue(data.getXValCount().toString() + "")
+
+        // 生成随机测试数
+//        val f = (Math.random() * 20 + 50).toFloat()
+
+        // set.getEntryCount()获得的是所有统计图表上的数据点总量，
+        // 如从0开始一样的数组下标，那么不必多次一举的加1
+        val entry = Entry(data.entryCount.toFloat(), value)
+
+        // 往linedata里面添加点。注意：addentry的第二个参数即代表折线的下标索引。
+        // 因为本例只有一个统计折线，那么就是第一个，其下标为0.
+        // 如果同一张统计图表中存在若干条统计折线，那么必须分清是针对哪一条（依据下标索引）统计折线添加。
+        var index = 0
+        when (lds.label) {
+            "AWS" -> index = 0
+            "Pelion" -> index = 1
+            "ALiYun" -> index = 2
+        }
+        data.addEntry(entry, index)
+
+        // 像ListView那样的通知数据更新
+        lineChart!!.notifyDataSetChanged()
+
+        // y坐标轴线最大值
+        // mChart.setVisibleYRange(30, AxisDependency.LEFT);
+
+        if(isAllMode == true){
+            // 当前统计图表中最多在x轴坐标线上显示的总量
+            lineChart!!.setVisibleXRangeMaximum(20f)
+            // 将坐标移动到最新
+            // 此代码将刷新图表的绘图
+            lineChart!!.moveViewToX((data.entryCount - 20).toFloat())
+
+        }else{
+            lineChart!!.setVisibleXRangeMaximum(data.entryCount.toFloat())
+//            zoomRatio = lds.entryCount.toFloat() / 60.toFloat()
+            lineChart?.moveViewToX(lds.entryCount.toFloat() - 1)
+            lineChart?.zoom(0f, 1f, 0f, 0f)
+//            lineChart?.zoom(zoomRatio, 1f, 0f, 0f)
+        }
+
+        // mChart.moveViewTo(data.getXValCount()-7, 55f,
+        // AxisDependency.LEFT);
+    }
+
+    private fun switchChart(label:String) {
+
+        when (label) {
+            "AWS" -> {
+                awsDataSet.isVisible = true
+                pelionDataSet.isVisible = false
+                aliyunDataSet.isVisible = false
+                awsDataSet.setDrawValues(false);//在点上显示数值 默认true
+                awsDataSet.setDrawCircles(false);//在点上画圆 默认true
+                lineChart!!.notifyDataSetChanged()
+                isAllMode = false
+
+            }
+            "Pelion" -> {
+                awsDataSet.isVisible = false
+                pelionDataSet.isVisible = true
+                aliyunDataSet.isVisible = false
+                pelionDataSet.setDrawValues(false);//在点上显示数值 默认true
+                pelionDataSet.setDrawCircles(false);//在点上画圆 默认true
+                lineChart!!.notifyDataSetChanged()
+                isAllMode = false
+            }
+            "ALiYun" -> {
+                awsDataSet.isVisible = false
+                pelionDataSet.isVisible = false
+                aliyunDataSet.isVisible = true
+                aliyunDataSet.setDrawValues(false);//在点上显示数值 默认true
+                aliyunDataSet.setDrawCircles(false);//在点上画圆 默认true
+                lineChart!!.notifyDataSetChanged()
+                isAllMode = false
+            }
+            else -> {
+                awsDataSet.isVisible = true
+                pelionDataSet.isVisible = true
+                aliyunDataSet.isVisible = true
+                awsDataSet.setDrawValues(true);//在点上显示数值 默认true
+                awsDataSet.setDrawCircles(true);//在点上画圆 默认true
+                pelionDataSet.setDrawValues(true);//在点上显示数值 默认true
+                pelionDataSet.setDrawCircles(true);//在点上画圆 默认true
+                aliyunDataSet.setDrawValues(true);//在点上显示数值 默认true
+                aliyunDataSet.setDrawCircles(true);//在点上画圆 默认true
+                lineChart!!.notifyDataSetChanged()
+                isAllMode = true
+            }
+        }
+
     }
 }

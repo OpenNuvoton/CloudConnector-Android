@@ -1,6 +1,8 @@
 package com.nuvoton.cloudconnector.alimqtt;
 
 
+import android.util.Log;
+
 import java.math.BigInteger;
 
 import javax.crypto.Mac;
@@ -39,12 +41,16 @@ public class AiotMqttOption {
             // password
             String macSrc = "clientId" + productKey + "." + deviceName + "deviceName" +
                     deviceName + "productKey" + productKey + "timestamp" + timestamp;
+
+            Log.i("mqttOption" ,   "password:"+"clientId" + productKey + "." + deviceName + "deviceName" +
+                    deviceName + "productKey" + productKey + "timestamp123456789") ;
+
             String algorithm = "HmacSHA256";
             Mac mac = Mac.getInstance(algorithm);
             SecretKeySpec secretKeySpec = new SecretKeySpec(deviceSecret.getBytes(), algorithm);
             mac.init(secretKeySpec);
             byte[] macRes = mac.doFinal(macSrc.getBytes());
-            password = String.format("%064x", new BigInteger(1, macRes));
+            this.password = String.format("%064x", new BigInteger(1, macRes));
         } catch (Exception e) {
             e.printStackTrace();
             return null;

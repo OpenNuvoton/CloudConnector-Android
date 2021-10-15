@@ -1,14 +1,16 @@
 package com.nuvoton.cloudconnector.model
 
 import android.content.Context
-import com.linkkit.aiotcore.AiotMqttClient
-import com.linkkit.aiotcore.AiotMqttException
+import android.content.SharedPreferences
+import androidx.preference.EditTextPreference
+import androidx.preference.PreferenceManager
 import com.nuvoton.cloudconnector.alimqtt.AiotMqttOption
 import com.nuvoton.cloudconnector.alimqtt.AliMqttHandler
 import com.nuvoton.cloudconnector.fromJsonString
 import com.nuvoton.cloudconnector.getPrefString
 import io.reactivex.schedulers.Schedulers
 import io.reactivex.subjects.PublishSubject
+
 
 class NuAliyunRepo(val context: Context) : RepositoryCommon() {
     private var mProductKey = ""
@@ -17,7 +19,7 @@ class NuAliyunRepo(val context: Context) : RepositoryCommon() {
     private var mReadTopic = "/$mProductKey/$mDeviceName/get"
     private var mWriteTopic = "/$mProductKey/$mDeviceName/data"
 
-    private var mHostname = "$mProductKey.iot-as-mqtt.cn-shanghai.aliyuncs.com"
+    private var mHostname = "tcp://$mProductKey.iot-as-mqtt.cn-shanghai.aliyuncs.com:443"
     private val port = 1883
     private val qos = 0
     private var mqttClient : AliMqttHandler? = null
@@ -26,6 +28,7 @@ class NuAliyunRepo(val context: Context) : RepositoryCommon() {
 
     // Implement abstract functions
     override fun start() {
+
         if (mProductKey == "" || mDeviceName == "" || mDeviceSecret == "") return
         val mqttOption = AiotMqttOption().getMqttOption(mProductKey, mDeviceName, mDeviceSecret);
 
@@ -69,11 +72,14 @@ class NuAliyunRepo(val context: Context) : RepositoryCommon() {
     }
 
     override fun getCloudSetting(): List<String> {
-        return listOf("Host name:\n$mHostname",
-            "MQTTTopic:\n$mReadTopic")
+        return listOf(
+            "Host name:\n$mHostname",
+            "MQTTTopic:\n$mReadTopic"
+        )
     }
 
     override fun updateSetting(context: Context) {
+
         val productKey = context.getPrefString("pref_aliyun_product_key")
         if (productKey != null) {
             mProductKey = productKey.toString()

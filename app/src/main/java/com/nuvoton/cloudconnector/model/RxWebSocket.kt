@@ -18,7 +18,6 @@ class RxWebSocket(websocketUrl: String, apiKey: String) {
     private var webSocket: WebSocket? = null
 
     val notificationChannel: PublishSubject<RxWebSocketInfo> = PublishSubject.create()
-
     init {
         client.newWebSocket(request, object : WebSocketListener() {
             override fun onOpen(webSocket: WebSocket, response: Response) {

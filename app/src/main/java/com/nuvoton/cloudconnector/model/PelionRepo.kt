@@ -15,8 +15,8 @@ import kotlin.concurrent.thread
 
 class PelionRepo : RepositoryCommon() {
     // Nuvoton test
-    private var mApiKey = ""
-    var mDeviceId = ""
+    private var mApiKey = "ak_2MDE3NzEzM2JiMzVjN2VlMDkzZTNkNzRjMDAwMDAwMDA01773747abf67ee093e3d74c00000000zKPZar3QTFeVv3ELp9HIK6kJ3EdHJ0k2"
+    var mDeviceId = "01772802469100000000000100181dbd"
     private var mResource = "3303/0/5700"
 //    val resources = hashMapOf("tension" to "3200/0/5501", "current" to "3200/0/5502", "power" to "3200/0/5503")
 

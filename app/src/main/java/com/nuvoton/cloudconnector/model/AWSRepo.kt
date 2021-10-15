@@ -75,7 +75,7 @@ class AWSRepo(private var applicationContext: Context) : RepositoryCommon() {
                 }
                 else {
                     getIoTLatestStatus()
-                    Thread.sleep(1000)
+                    Thread.sleep(3000)
                 }
             }
         }

@@ -4,9 +4,9 @@
 For those who are interested in connecting to IoT cloud servers can apply support form for more information.
 [Support Form](https://www.nuvoton.com/support/technical-support/form/)
 
-## Build Enviorment
-* IDE: Xcode 11.6
-* Package Manager: Cocoapods
+## Build Environment
+* IDE: Android Studio 4.0
+* Build System: gradle-5.4.1-all.zip
 
 ## How to Build
 * Open the project file with Android Studio
@@ -19,7 +19,7 @@ For those who are interested in connecting to IoT cloud servers can apply suppor
 * 4 parameters are required to receive IoT data
     * mIoTThingName: The IoTThing's name
     * mIoTEndPoint: The IoTThing's endpoint
-    * mCognitoIdentityPoolId: The cognito pool ID for thost who has the permission to get the device status
+    * mCognitoIdentityPoolId: The cognito pool ID for those who has the permission to get the device status
     * mRegion: The region the IoT device registered. E.g.: AWSRegionType.USEast1
 
 ### Pelion:

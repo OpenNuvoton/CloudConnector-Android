@@ -29,6 +29,10 @@ allprojects {
         maven {
             url "https://dl.bintray.com/gechen/maven"
         }
+        // 阿里云仓库地址
+        maven {
+            url "http://maven.aliyun.com/nexus/content/repositories/releases/"
+        }
     }
 }
 

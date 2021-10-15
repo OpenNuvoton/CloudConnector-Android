@@ -43,4 +43,14 @@
         <item>me-south-1</item>
         <item>sa-east-1</item>
     </string-array>
+
+    <string-array name="Ali_Group_item">
+        <item>HQ_APP1</item>
+        <item>HQ_APP2</item>
+        <item>SZ_APP1</item>
+        <item>SZ_APP2</item>
+        <item>SH_APP1</item>
+        <item>SH_APP2</item>
+
+    </string-array>
 </resources>

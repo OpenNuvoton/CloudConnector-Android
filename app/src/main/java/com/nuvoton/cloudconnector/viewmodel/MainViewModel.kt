@@ -108,14 +108,14 @@ class MainViewModel(context: Context) {
         pelionRepo.updateSetting(context)
     }
 
-    fun start() {
+    fun start() {  //啟動的地方
         bindDataSubjects()
         bindStatusSubjects()
         awsRepo.start()
         thread {
             aliyunRepo.start()
         }
-        pelionRepo.start()
+        pelionRepo.start()   //PELION 關掉關鍵 記得以後要打開
     }
 
     fun pause() {

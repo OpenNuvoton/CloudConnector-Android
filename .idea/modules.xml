@@ -2,9 +2,9 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/aiotcore-debug/aiotcore-debug.iml" filepath="$PROJECT_DIR$/aiotcore-debug/aiotcore-debug.iml" group="cloudconnector-android/aiotcore-debug" />
-      <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" group="cloudconnector-android/app" />
-      <module fileurl="file://$PROJECT_DIR$/cloudconnector-android.iml" filepath="$PROJECT_DIR$/cloudconnector-android.iml" group="cloudconnector-android" />
+      <module fileurl="file://$PROJECT_DIR$/cloudconnector-android.iml" filepath="$PROJECT_DIR$/cloudconnector-android.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/aiotcore-debug/cloudconnector-android.aiotcore-debug.iml" filepath="$PROJECT_DIR$/.idea/modules/aiotcore-debug/cloudconnector-android.aiotcore-debug.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/cloudconnector-android.app.iml" filepath="$PROJECT_DIR$/.idea/modules/app/cloudconnector-android.app.iml" />
     </modules>
   </component>
 </project>
