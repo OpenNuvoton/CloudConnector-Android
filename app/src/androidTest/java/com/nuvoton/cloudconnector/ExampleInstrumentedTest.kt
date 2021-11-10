@@ -4,7 +4,6 @@ import android.content.Context
 import android.util.Log
 import androidx.test.InstrumentationRegistry
 import com.nuvoton.cloudconnector.model.AWSRepo
-import com.nuvoton.cloudconnector.model.AliyunRepo
 import com.nuvoton.cloudconnector.model.PelionRepo
 import io.reactivex.schedulers.Schedulers
 

@@ -2,10 +2,8 @@ package com.nuvoton.cloudconnector.viewmodel
 
 import android.content.Context
 import android.util.Base64
-import android.util.Log
 import com.nuvoton.cloudconnector.*
 import com.nuvoton.cloudconnector.model.AWSRepo
-import com.nuvoton.cloudconnector.model.AliyunRepo
 import com.nuvoton.cloudconnector.model.NuAliyunRepo
 import com.nuvoton.cloudconnector.model.PelionRepo
 import com.nuvoton.cloudconnector.viewmodel.RepoOption.*
@@ -112,6 +110,7 @@ class MainViewModel(context: Context) {
         bindDataSubjects()
         bindStatusSubjects()
         awsRepo.start()
+
         thread {
             aliyunRepo.start()
         }

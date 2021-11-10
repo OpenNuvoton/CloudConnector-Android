@@ -19,7 +19,7 @@ class NuAliyunRepo(val context: Context) : RepositoryCommon() {
     private var mReadTopic = "/$mProductKey/$mDeviceName/get"
     private var mWriteTopic = "/$mProductKey/$mDeviceName/data"
 
-    private var mHostname = "tcp://$mProductKey.iot-as-mqtt.cn-shanghai.aliyuncs.com:443"
+    private var mHostname = "tcp://$mProductKey.iot-as-mqtt.cn-shanghai.aliyuncs.com:1883"
     private val port = 1883
     private val qos = 0
     private var mqttClient : AliMqttHandler? = null

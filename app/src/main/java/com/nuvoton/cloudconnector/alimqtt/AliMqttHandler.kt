@@ -23,8 +23,10 @@ public class AliMqttHandler(context: Context, val aliMqttOption: AiotMqttOption,
             }
 
             override fun connectionLost(cause: Throwable?) {
-                if (cause != null)
+                if (cause != null) {
                     observer.onError(cause)
+                    cause.printStackTrace();
+                }
             }
 
             override fun deliveryComplete(token: IMqttDeliveryToken?) {
@@ -41,7 +43,7 @@ public class AliMqttHandler(context: Context, val aliMqttOption: AiotMqttOption,
 
             Log.i("mqttOption" ,   "clientId:"+aliMqttOption.clientId+"  userName:"+mqttOption.userName +"   password:"+mqttOption.password  +"       "+aliMqttOption.password)
 
-            mqttAndroidClient = MqttAndroidClient(context,"tcp://"+host+":443",aliMqttOption.clientId)
+            mqttAndroidClient = MqttAndroidClient(context,"tcp://"+host+":1883",aliMqttOption.clientId)
 
             mqttAndroidClient.connect(mqttOption, null, object : IMqttActionListener {
                 override fun onSuccess(asyncActionToken: IMqttToken?) {

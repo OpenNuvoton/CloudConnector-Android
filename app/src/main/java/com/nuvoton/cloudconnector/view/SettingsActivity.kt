@@ -76,6 +76,11 @@ class SettingsActivity : AppCompatActivity() {
                             device_name!!.text = "SH_APP_2"
                             device_secret!!.text = "e54aba7dcd2d2c01803db7bc4c04274f"
                         }
+                        "HQ_DEV"->{
+                            product_key!!.text = "a1n3OH5qaph"
+                            device_name!!.text = "HQ_DEV"
+                            device_secret!!.text = "34f09a2a8880b1e0bad52333ee44ad4f"
+                        }
                     }
 
                 }
