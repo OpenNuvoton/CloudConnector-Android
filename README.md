@@ -34,3 +34,7 @@ For those who are interested in connecting to IoT cloud servers can apply suppor
     * mProductKey: The product key of the IoT device
     * mDeviceName: The device name of the IoT device
     * mDeviceSecret: The device secret of the IoT device
+
+## License
+
+This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
